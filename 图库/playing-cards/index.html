@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Open source playing card images in PNG and SVG formats. Free to use for any project.">
+    <meta name="keywords" content="playing cards, cards, poker, svg, png, open source, free, deck">
+    <meta name="author" content="Webisso">
+    <link rel="icon" type="image/png" href="https://webisso.github.io/playing-cards/png/red_joker.png">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Playing Cards - Open Source Card Images">
+    <meta property="og:description" content="Free, open source playing card images in PNG and SVG formats.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://webisso.github.io/playing-cards/">
+    <meta property="og:image" content="https://webisso.github.io/playing-cards/png/ace_of_spades.png">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Playing Cards - Open Source Card Images">
+    <meta name="twitter:description" content="Free, open source playing card images in PNG and SVG formats.">
+    
+    <title>🃏 Playing Cards - Open Source Card Images</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    },
+                    animation: {
+                        'float': 'float 3s ease-in-out infinite',
+                        'card-hover': 'cardHover 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        cardHover: {
+                            '0%': { transform: 'scale(1) rotate(0deg)' },
+                            '100%': { transform: 'scale(1.05) rotate(2deg)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+        
+        /* Card flip animation */
+        .card-container {
+            perspective: 1000px;
+        }
+        .card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card-container:hover .card-inner {
+            transform: rotateY(10deg) rotateX(5deg);
+        }
+        
+        /* Suit colors */
+        .suit-hearts, .suit-diamonds {
+            color: #dc2626;
+        }
+        .suit-clubs, .suit-spades {
+            color: #1f2937;
+        }
+        .dark .suit-clubs, .dark .suit-spades {
+            color: #e5e7eb;
+        }
+        
+        /* Toast notification */
+        .toast {
+            animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen transition-colors duration-300">
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <span class="text-3xl">🃏</span>
+                    <span class="font-bold text-xl text-gray-900 dark:text-white">Playing Cards</span>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <a href="#cards" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">Cards</a>
+                    <a href="#api" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">API</a>
+                    <a href="https://github.com/webisso/playing-cards" target="_blank" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    </a>
+                    
+                    <!-- Dark Mode Toggle -->
+                    <button id="themeToggle" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-4">
+        <div class="max-w-7xl mx-auto text-center">
+            <div class="flex justify-center space-x-4 mb-8">
+                <img src="png/ace_of_spades.png" alt="Ace of Spades" class="w-24 h-auto transform -rotate-12 shadow-lg rounded-lg animate-float" style="animation-delay: 0s;">
+                <img src="png/ace_of_hearts.png" alt="Ace of Hearts" class="w-24 h-auto transform rotate-6 shadow-lg rounded-lg animate-float" style="animation-delay: 0.5s;">
+                <img src="png/ace_of_diamonds.png" alt="Ace of Diamonds" class="w-24 h-auto transform -rotate-3 shadow-lg rounded-lg animate-float" style="animation-delay: 1s;">
+                <img src="png/ace_of_clubs.png" alt="Ace of Clubs" class="w-24 h-auto transform rotate-12 shadow-lg rounded-lg animate-float" style="animation-delay: 1.5s;">
+            </div>
+            
+            <h1 class="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+                Open Source <span class="text-primary-600 dark:text-primary-400">Playing Cards</span>
+            </h1>
+            <p class="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+                Free, high-quality playing card images in PNG and SVG formats. Perfect for games, apps, and creative projects.
+            </p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="#cards" class="inline-flex items-center justify-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Browse Cards
+                </a>
+                <a href="https://github.com/webisso/playing-cards" target="_blank" class="inline-flex items-center justify-center px-6 py-3 bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    View on GitHub
+                </a>
+            </div>
+            
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 max-w-4xl mx-auto">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <div class="text-3xl font-bold text-primary-600 dark:text-primary-400">54</div>
+                    <div class="text-gray-600 dark:text-gray-400">Cards</div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <div class="text-3xl font-bold text-primary-600 dark:text-primary-400">2</div>
+                    <div class="text-gray-600 dark:text-gray-400">Formats</div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <div class="text-3xl font-bold text-primary-600 dark:text-primary-400">4</div>
+                    <div class="text-gray-600 dark:text-gray-400">Suits</div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <div class="text-3xl font-bold text-primary-600 dark:text-primary-400">MIT</div>
+                    <div class="text-gray-600 dark:text-gray-400">License</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cards Gallery Section -->
+    <section id="cards" class="py-20 px-4 bg-white dark:bg-gray-800">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-4">Card Gallery</h2>
+            <p class="text-center text-gray-600 dark:text-gray-400 mb-8">Click any card to copy its URL</p>
+            
+            <!-- Format Toggle -->
+            <div class="flex justify-center mb-8">
+                <div class="inline-flex rounded-lg bg-gray-100 dark:bg-gray-700 p-1">
+                    <button id="pngBtn" class="px-4 py-2 rounded-lg bg-primary-600 text-white font-medium transition-all">PNG</button>
+                    <button id="svgBtn" class="px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 font-medium transition-all hover:bg-gray-200 dark:hover:bg-gray-600">SVG</button>
+                </div>
+            </div>
+            
+            <!-- Suit Filter -->
+            <div class="flex flex-wrap justify-center gap-2 mb-8">
+                <button class="suit-filter active px-4 py-2 rounded-lg bg-primary-600 text-white font-medium transition-all" data-suit="all">All</button>
+                <button class="suit-filter px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition-all hover:bg-gray-200 dark:hover:bg-gray-600" data-suit="spades">♠️ Spades</button>
+                <button class="suit-filter px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition-all hover:bg-gray-200 dark:hover:bg-gray-600" data-suit="hearts">♥️ Hearts</button>
+                <button class="suit-filter px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition-all hover:bg-gray-200 dark:hover:bg-gray-600" data-suit="diamonds">♦️ Diamonds</button>
+                <button class="suit-filter px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition-all hover:bg-gray-200 dark:hover:bg-gray-600" data-suit="clubs">♣️ Clubs</button>
+                <button class="suit-filter px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition-all hover:bg-gray-200 dark:hover:bg-gray-600" data-suit="jokers">🃏 Jokers</button>
+            </div>
+            
+            <!-- Cards Grid -->
+            <div id="cardsGrid" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-13 gap-3">
+                <!-- Cards will be dynamically loaded -->
+            </div>
+        </div>
+    </section>
+
+    <!-- API Section -->
+    <section id="api" class="py-20 px-4">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-4">JSON API</h2>
+            <p class="text-center text-gray-600 dark:text-gray-400 mb-12">Easy integration with your projects</p>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-3 bg-gray-100 dark:bg-gray-700">
+                    <div class="flex space-x-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    </div>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">JavaScript</span>
+                </div>
+                <pre class="p-6 text-sm overflow-x-auto"><code class="text-gray-800 dark:text-gray-200">
+<span class="text-purple-600 dark:text-purple-400">// Fetch all cards data</span>
+<span class="text-blue-600 dark:text-blue-400">fetch</span>(<span class="text-green-600 dark:text-green-400">'https://webisso.github.io/playing-cards/cards.json'</span>)
+  .<span class="text-blue-600 dark:text-blue-400">then</span>(response => response.<span class="text-blue-600 dark:text-blue-400">json</span>())
+  .<span class="text-blue-600 dark:text-blue-400">then</span>(data => {
+    <span class="text-purple-600 dark:text-purple-400">// Get Ace of Spades PNG URL</span>
+    <span class="text-blue-600 dark:text-blue-400">const</span> aceOfSpades = data.cards.spades.ace.png;
+    console.<span class="text-blue-600 dark:text-blue-400">log</span>(aceOfSpades);
+    <span class="text-purple-600 dark:text-purple-400">// Output: "png/ace_of_spades.png"</span>
+  });
+                </code></pre>
+            </div>
+            
+            <!-- Direct URL Examples -->
+            <div class="mt-8 grid md:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-3">📷 PNG Format</h3>
+                    <code class="text-sm text-gray-600 dark:text-gray-400 break-all">
+                        https://webisso.github.io/playing-cards/png/ace_of_spades.png
+                    </code>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-3">🎨 SVG Format</h3>
+                    <code class="text-sm text-gray-600 dark:text-gray-400 break-all">
+                        https://webisso.github.io/playing-cards/svg/ace_of_spades.svg
+                    </code>
+                </div>
+            </div>
+            
+            <!-- JSON Endpoint -->
+            <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3">📦 JSON Endpoint</h3>
+                <div class="flex items-center gap-3">
+                    <code class="flex-1 text-sm text-gray-600 dark:text-gray-400 break-all">
+                        https://webisso.github.io/playing-cards/cards.json
+                    </code>
+                    <button onclick="copyToClipboard('https://webisso.github.io/playing-cards/cards.json')" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors">
+                        Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-4 bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="flex items-center space-x-3 mb-4 md:mb-0">
+                    <span class="text-3xl">🃏</span>
+                    <span class="font-bold text-xl">Playing Cards</span>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <a href="https://github.com/webisso/playing-cards" target="_blank" class="text-gray-400 hover:text-white transition-colors">
+                        GitHub
+                    </a>
+                    <a href="https://github.com/webisso/playing-cards/blob/main/LICENSE" target="_blank" class="text-gray-400 hover:text-white transition-colors">
+                        MIT License
+                    </a>
+                    <a href="cards.json" target="_blank" class="text-gray-400 hover:text-white transition-colors">
+                        JSON API
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
+                <p>Made with ♥️ by <a href="https://github.com/webisso" target="_blank" class="text-primary-400 hover:text-primary-300">Webisso</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 hidden">
+        <div class="toast bg-gray-900 dark:bg-gray-700 text-white px-6 py-3 rounded-lg shadow-lg">
+            URL copied to clipboard!
+        </div>
+    </div>
+
+    <script>
+        // Card data
+        const suits = ['spades', 'hearts', 'diamonds', 'clubs'];
+        const ranks = ['ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king'];
+        const jokers = ['black_joker', 'red_joker'];
+        
+        let currentFormat = 'png';
+        let currentSuit = 'all';
+        
+        // Generate cards
+        function generateCards() {
+            const grid = document.getElementById('cardsGrid');
+            grid.innerHTML = '';
+            
+            const cards = [];
+            
+            // Add regular cards
+            suits.forEach(suit => {
+                ranks.forEach(rank => {
+                    cards.push({
+                        name: `${rank}_of_${suit}`,
+                        suit: suit,
+                        rank: rank
+                    });
+                });
+            });
+            
+            // Add jokers
+            jokers.forEach(joker => {
+                cards.push({
+                    name: joker,
+                    suit: 'jokers',
+                    rank: 'joker'
+                });
+            });
+            
+            // Filter and display cards
+            cards
+                .filter(card => currentSuit === 'all' || card.suit === currentSuit)
+                .forEach(card => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'card-container cursor-pointer group';
+                    cardEl.innerHTML = `
+                        <div class="card-inner">
+                            <img 
+                                src="${currentFormat}/${card.name}.${currentFormat}" 
+                                alt="${card.name.replace(/_/g, ' ')}"
+                                class="w-full h-auto rounded-lg shadow-md group-hover:shadow-xl transition-shadow"
+                                loading="lazy"
+                            >
+                        </div>
+                    `;
+                    cardEl.onclick = () => copyCardUrl(card.name);
+                    grid.appendChild(cardEl);
+                });
+        }
+        
+        // Copy card URL
+        function copyCardUrl(cardName) {
+            const url = `https://webisso.github.io/playing-cards/${currentFormat}/${cardName}.${currentFormat}`;
+            copyToClipboard(url);
+        }
+        
+        // Copy to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast();
+            });
+        }
+        
+        // Show toast notification
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // Format toggle
+        document.getElementById('pngBtn').onclick = () => {
+            currentFormat = 'png';
+            document.getElementById('pngBtn').classList.add('bg-primary-600', 'text-white');
+            document.getElementById('pngBtn').classList.remove('text-gray-700', 'dark:text-gray-300');
+            document.getElementById('svgBtn').classList.remove('bg-primary-600', 'text-white');
+            document.getElementById('svgBtn').classList.add('text-gray-700', 'dark:text-gray-300');
+            generateCards();
+        };
+        
+        document.getElementById('svgBtn').onclick = () => {
+            currentFormat = 'svg';
+            document.getElementById('svgBtn').classList.add('bg-primary-600', 'text-white');
+            document.getElementById('svgBtn').classList.remove('text-gray-700', 'dark:text-gray-300');
+            document.getElementById('pngBtn').classList.remove('bg-primary-600', 'text-white');
+            document.getElementById('pngBtn').classList.add('text-gray-700', 'dark:text-gray-300');
+            generateCards();
+        };
+        
+        // Suit filter
+        document.querySelectorAll('.suit-filter').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.suit-filter').forEach(b => {
+                    b.classList.remove('bg-primary-600', 'text-white');
+                    b.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                });
+                btn.classList.add('bg-primary-600', 'text-white');
+                btn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                currentSuit = btn.dataset.suit;
+                generateCards();
+            };
+        });
+        
+        // Dark mode toggle
+        const themeToggle = document.getElementById('themeToggle');
+        
+        // Check for saved theme preference or default to system preference
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        
+        themeToggle.onclick = () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        };
+        
+        // Initialize
+        generateCards();
+    </script>
+</body>
+</html>

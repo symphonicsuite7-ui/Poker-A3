@@ -1,0 +1,116 @@
+# 🃏 Игральные карты
+
+[![Лицензия: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://webisso.github.io/playing-cards/)
+
+Открытые изображения игральных карт в форматах PNG и SVG. Бесплатно для любого проекта!
+
+🌐 **Демо:** [https://webisso.github.io/playing-cards/](https://webisso.github.io/playing-cards/)
+
+## 📦 Что включено
+
+- **54 игральные карты** (52 стандартные карты + 2 джокера)
+- **Формат PNG** – Качественные растровые изображения
+- **Формат SVG** – Масштабируемая векторная графика
+- **JSON API** – Легкая интеграция в ваши проекты
+
+## 🚀 Быстрый старт
+
+### Прямой доступ по URL
+
+Доступ к любой карте напрямую через GitHub Pages:
+
+```
+https://webisso.github.io/playing-cards/png/{имя_карты}.png
+https://webisso.github.io/playing-cards/svg/{имя_карты}.svg
+```
+
+### Примеры
+
+```html
+<!-- PNG -->
+<img src="https://webisso.github.io/playing-cards/png/ace_of_spades.png" alt="Туз пик">
+
+<!-- SVG -->
+<img src="https://webisso.github.io/playing-cards/svg/ace_of_spades.svg" alt="Туз пик">
+```
+
+### JSON API
+
+Получите данные о картах программно:
+
+```javascript
+fetch('https://webisso.github.io/playing-cards/cards.json')
+	.then(response => response.json())
+	.then(data => {
+		console.log(data.cards.spades.ace);
+	});
+```
+
+## 📁 Структура файлов
+
+```
+playing-cards/
+├── png/                    # PNG-изображения
+│   ├── ace_of_clubs.png
+│   ├── ace_of_diamonds.png
+│   ├── ace_of_hearts.png
+│   ├── ace_of_spades.png
+│   ├── 2_of_clubs.png
+│   ├── ...
+│   ├── king_of_spades.png
+│   ├── black_joker.png
+│   └── red_joker.png
+├── svg/                    # SVG-изображения
+│   ├── ace_of_clubs.svg
+│   ├── ...
+│   └── red_joker.svg
+├── cards.json              # JSON-данные для всех карт
+├── index.html              # Главная страница GitHub Pages
+├── LICENSE                 # Лицензия MIT
+└── README.md               # Этот файл
+```
+
+## 🎴 Соглашение об именовании карт
+
+Карты следуют этому шаблону именования:
+
+- **Числовые карты:** `{число}_of_{масть}.{ext}` (например, `2_of_hearts.png`)
+- **Фигурные карты:** `{фигура}_of_{масть}.{ext}` (например, `king_of_spades.svg`)
+- **Тузы:** `ace_of_{масть}.{ext}` (например, `ace_of_diamonds.png`)
+- **Джокеры:** `{цвет}_joker.{ext}` (например, `black_joker.svg`, `red_joker.png`)
+
+### Масти
+- `clubs` ♣️ (Трефы)
+- `diamonds` ♦️ (Бубны)
+- `hearts` ♥️ (Червы)
+- `spades` ♠️ (Пики)
+
+### Значения
+- `ace`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `jack`, `queen`, `king`
+
+## 🌍 Переводы
+
+Этот README доступен на нескольких языках. Смотрите папку /readme для других языков.
+
+## 📄 Лицензия
+
+Этот проект лицензирован по MIT – см. файл [LICENSE](../LICENSE) для подробностей.
+
+## 🤝 Вклад
+
+Вклады приветствуются! Не стесняйтесь:
+
+1. Форкнуть репозиторий
+2. Создать свою ветку (`git checkout -b feature/otlichnaya-funktsiya`)
+3. Зафиксировать изменения (`git commit -m 'Добавить отличную функцию'`)
+4. Отправить ветку (`git push origin feature/otlichnaya-funktsiya`)
+5. Открыть Pull Request
+
+## ⭐ Поддержка
+
+Если этот проект оказался полезным, пожалуйста, поставьте звезду на GitHub!
+
+---
+
+Сделано с ❤️ от [Webisso](https://github.com/webisso)

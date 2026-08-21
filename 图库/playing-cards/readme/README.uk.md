@@ -1,0 +1,116 @@
+# 🃏 Гральні карти
+
+[![Ліцензія: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://webisso.github.io/playing-cards/)
+
+Відкриті зображення гральних карт у форматах PNG та SVG. Безкоштовно для будь-якого проєкту!
+
+🌐 **Демо:** [https://webisso.github.io/playing-cards/](https://webisso.github.io/playing-cards/)
+
+## 📦 Що входить
+
+- **54 гральні карти** (52 стандартні карти + 2 джокери)
+- **Формат PNG** – Якісні растрові зображення
+- **Формат SVG** – Масштабована векторна графіка
+- **JSON API** – Легка інтеграція у ваші проєкти
+
+## 🚀 Швидкий старт
+
+### Прямий доступ за URL
+
+Доступ до будь-якої карти напряму через GitHub Pages:
+
+```
+https://webisso.github.io/playing-cards/png/{назва_карти}.png
+https://webisso.github.io/playing-cards/svg/{назва_карти}.svg
+```
+
+### Приклади
+
+```html
+<!-- PNG -->
+<img src="https://webisso.github.io/playing-cards/png/ace_of_spades.png" alt="Туз пік">
+
+<!-- SVG -->
+<img src="https://webisso.github.io/playing-cards/svg/ace_of_spades.svg" alt="Туз пік">
+```
+
+### JSON API
+
+Отримайте дані про карти програмно:
+
+```javascript
+fetch('https://webisso.github.io/playing-cards/cards.json')
+	.then(response => response.json())
+	.then(data => {
+		console.log(data.cards.spades.ace);
+	});
+```
+
+## 📁 Структура файлів
+
+```
+playing-cards/
+├── png/                    # PNG-зображення
+│   ├── ace_of_clubs.png
+│   ├── ace_of_diamonds.png
+│   ├── ace_of_hearts.png
+│   ├── ace_of_spades.png
+│   ├── 2_of_clubs.png
+│   ├── ...
+│   ├── king_of_spades.png
+│   ├── black_joker.png
+│   └── red_joker.png
+├── svg/                    # SVG-зображення
+│   ├── ace_of_clubs.svg
+│   ├── ...
+│   └── red_joker.svg
+├── cards.json              # JSON-дані для всіх карт
+├── index.html              # Головна сторінка GitHub Pages
+├── LICENSE                 # Ліцензія MIT
+└── README.md               # Цей файл
+```
+
+## 🎴 Конвенція іменування карт
+
+Карти мають таку схему іменування:
+
+- **Числові карти:** `{число}_of_{масть}.{ext}` (наприклад, `2_of_hearts.png`)
+- **Фігурні карти:** `{фігура}_of_{масть}.{ext}` (наприклад, `king_of_spades.svg`)
+- **Тузи:** `ace_of_{масть}.{ext}` (наприклад, `ace_of_diamonds.png`)
+- **Джокери:** `{колір}_joker.{ext}` (наприклад, `black_joker.svg`, `red_joker.png`)
+
+### Масті
+- `clubs` ♣️ (трефи)
+- `diamonds` ♦️ (бубни)
+- `hearts` ♥️ (черва)
+- `spades` ♠️ (піки)
+
+### Значення
+- `ace`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `jack`, `queen`, `king`
+
+## 🌍 Переклади
+
+Цей README доступний багатьма мовами. Дивіться папку /readme для інших мов.
+
+## 📄 Ліцензія
+
+Цей проєкт ліцензовано за MIT – див. файл [LICENSE](../LICENSE) для деталей.
+
+## 🤝 Внесок
+
+Внески вітаються! Будь ласка:
+
+1. Форкніть репозиторій
+2. Створіть свою гілку (`git checkout -b feature/amazing-feature`)
+3. Зробіть коміт (`git commit -m 'Додати чудову функцію'`)
+4. Відправте гілку (`git push origin feature/amazing-feature`)
+5. Відкрийте Pull Request
+
+## ⭐ Підтримка
+
+Якщо цей проєкт був корисним, поставте зірку на GitHub!
+
+---
+
+Зроблено з ❤️ [Webisso](https://github.com/webisso)

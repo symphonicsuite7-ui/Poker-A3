@@ -1,0 +1,19 @@
+{
+  "name": "poker-room",
+  "version": "1.0.0",
+  "description": "四人扑克：登录、房间、联网对局",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.2",
+    "multer": "^2.2.0",
+    "socket.io": "^4.8.1"
+  }
+}

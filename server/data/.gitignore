@@ -1,0 +1,3 @@
+# 本地数据目录（用户账号等）
+*.json
+!package.json

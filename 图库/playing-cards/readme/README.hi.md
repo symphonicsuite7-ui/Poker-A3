@@ -1,0 +1,116 @@
+# 🃏 ताश के पत्ते
+
+[![लाइसेंस: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://webisso.github.io/playing-cards/)
+
+ओपन सोर्स ताश के पत्तों की छवियां PNG और SVG प्रारूपों में। किसी भी प्रोजेक्ट के लिए मुफ्त में उपयोग करें!
+
+🌐 **लाइव डेमो:** [https://webisso.github.io/playing-cards/](https://webisso.github.io/playing-cards/)
+
+## 📦 क्या शामिल है
+
+- **54 ताश के पत्ते** (52 सामान्य पत्ते + 2 जोकर)
+- **PNG प्रारूप** – उच्च गुणवत्ता वाली रास्टर छवियां
+- **SVG प्रारूप** – स्केलेबल वेक्टर ग्राफिक्स
+- **JSON API** – आपके प्रोजेक्ट्स में आसान एकीकरण
+
+## 🚀 त्वरित शुरुआत
+
+### डायरेक्ट URL एक्सेस
+
+GitHub Pages के माध्यम से किसी भी पत्ते तक सीधे पहुँचें:
+
+```
+https://webisso.github.io/playing-cards/png/{patte_ka_naam}.png
+https://webisso.github.io/playing-cards/svg/{patte_ka_naam}.svg
+```
+
+### उदाहरण
+
+```html
+<!-- PNG -->
+<img src="https://webisso.github.io/playing-cards/png/ace_of_spades.png" alt="इक्का पान">
+
+<!-- SVG -->
+<img src="https://webisso.github.io/playing-cards/svg/ace_of_spades.svg" alt="इक्का पान">
+```
+
+### JSON API
+
+प्रोग्रामेटिक रूप से पत्तों का डेटा प्राप्त करें:
+
+```javascript
+fetch('https://webisso.github.io/playing-cards/cards.json')
+	.then(response => response.json())
+	.then(data => {
+		console.log(data.cards.spades.ace);
+	});
+```
+
+## 📁 फ़ाइल संरचना
+
+```
+playing-cards/
+├── png/                    # PNG छवियां
+│   ├── ace_of_clubs.png
+│   ├── ace_of_diamonds.png
+│   ├── ace_of_hearts.png
+│   ├── ace_of_spades.png
+│   ├── 2_of_clubs.png
+│   ├── ...
+│   ├── king_of_spades.png
+│   ├── black_joker.png
+│   └── red_joker.png
+├── svg/                    # SVG छवियां
+│   ├── ace_of_clubs.svg
+│   ├── ...
+│   └── red_joker.svg
+├── cards.json              # सभी पत्तों का JSON डेटा
+├── index.html              # GitHub Pages लैंडिंग पेज
+├── LICENSE                 # MIT लाइसेंस
+└── README.md               # यह फ़ाइल
+```
+
+## 🎴 पत्तों की नामकरण परंपरा
+
+पत्ते इस नामकरण पैटर्न का पालन करते हैं:
+
+- **संख्या वाले पत्ते:** `{संख्या}_of_{सूट}.{ext}` (जैसे `2_of_hearts.png`)
+- **फेस कार्ड:** `{फेस}_of_{सूट}.{ext}` (जैसे `king_of_spades.svg`)
+- **इक्के:** `ace_of_{सूट}.{ext}` (जैसे `ace_of_diamonds.png`)
+- **जोकर:** `{रंग}_joker.{ext}` (जैसे `black_joker.svg`, `red_joker.png`)
+
+### सूट
+- `clubs` ♣️ (चिड़ी)
+- `diamonds` ♦️ (ईंट)
+- `hearts` ♥️ (दिल)
+- `spades` ♠️ (पान)
+
+### मान
+- `ace`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `jack`, `queen`, `king`
+
+## 🌍 अनुवाद
+
+यह README कई भाषाओं में उपलब्ध है। अधिक भाषाओं के लिए /readme फ़ोल्डर देखें।
+
+## 📄 लाइसेंस
+
+यह प्रोजेक्ट MIT लाइसेंस के तहत लाइसेंस प्राप्त है – विवरण के लिए [LICENSE](../LICENSE) फ़ाइल देखें।
+
+## 🤝 योगदान
+
+योगदान का स्वागत है! ऐसे करें:
+
+1. रिपॉजिटरी को फोर्क करें
+2. अपनी ब्रांच बनाएं (`git checkout -b feature/amazing-feature`)
+3. बदलाव कमिट करें (`git commit -m 'शानदार फीचर जोड़ें'`)
+4. ब्रांच पुश करें (`git push origin feature/amazing-feature`)
+5. एक Pull Request खोलें
+
+## ⭐ समर्थन
+
+यदि आपको यह प्रोजेक्ट उपयोगी लगे, तो कृपया GitHub पर इसे स्टार दें!
+
+---
+
+❤️ के साथ बनाया [Webisso](https://github.com/webisso)

@@ -1,0 +1,116 @@
+# 🃏 ਪੱਤੇ ਖੇਡਣ ਵਾਲੇ
+
+[![ਲਾਇਸੈਂਸ: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://webisso.github.io/playing-cards/)
+
+ਓਪਨ ਸੋਰਸ ਪੱਤਿਆਂ ਦੀਆਂ ਤਸਵੀਰਾਂ PNG ਅਤੇ SVG ਫਾਰਮੈਟ ਵਿੱਚ। ਕਿਸੇ ਵੀ ਪ੍ਰੋਜੈਕਟ ਲਈ ਮੁਫ਼ਤ ਵਰਤੋਂ!
+
+🌐 **ਲਾਈਵ ਡੈਮੋ:** [https://webisso.github.io/playing-cards/](https://webisso.github.io/playing-cards/)
+
+## 📦 ਕੀ ਸ਼ਾਮਲ ਹੈ
+
+- **54 ਪੱਤੇ** (52 ਆਮ ਪੱਤੇ + 2 ਜੋਕਰ)
+- **PNG ਫਾਰਮੈਟ** – ਉੱਚ ਗੁਣਵੱਤਾ ਵਾਲੀਆਂ ਰਾਸਟਰ ਤਸਵੀਰਾਂ
+- **SVG ਫਾਰਮੈਟ** – ਸਕੇਲ ਕਰਨ ਯੋਗ ਵੈਕਟਰ ਗ੍ਰਾਫਿਕਸ
+- **JSON API** – ਤੁਹਾਡੇ ਪ੍ਰੋਜੈਕਟਾਂ ਵਿੱਚ ਆਸਾਨ ਇੰਟੀਗ੍ਰੇਸ਼ਨ
+
+## 🚀 ਤੇਜ਼ ਸ਼ੁਰੂਆਤ
+
+### ਸਿੱਧਾ URL ਐਕਸੈੱਸ
+
+GitHub Pages ਰਾਹੀਂ ਕਿਸੇ ਵੀ ਪੱਤੇ ਤੱਕ ਸਿੱਧਾ ਪਹੁੰਚ:
+
+```
+https://webisso.github.io/playing-cards/png/{patte_da_naam}.png
+https://webisso.github.io/playing-cards/svg/{patte_da_naam}.svg
+```
+
+### ਉਦਾਹਰਨਾਂ
+
+```html
+<!-- PNG -->
+<img src="https://webisso.github.io/playing-cards/png/ace_of_spades.png" alt="ਇੱਕਾ ਪਾਨ">
+
+<!-- SVG -->
+<img src="https://webisso.github.io/playing-cards/svg/ace_of_spades.svg" alt="ਇੱਕਾ ਪਾਨ">
+```
+
+### JSON API
+
+ਪੱਤਿਆਂ ਦੇ ਡਾਟਾ ਨੂੰ ਪ੍ਰੋਗਰਾਮਿੰਗ ਰਾਹੀਂ ਪ੍ਰਾਪਤ ਕਰੋ:
+
+```javascript
+fetch('https://webisso.github.io/playing-cards/cards.json')
+	.then(response => response.json())
+	.then(data => {
+		console.log(data.cards.spades.ace);
+	});
+```
+
+## 📁 ਫਾਈਲ ਸੰਰਚਨਾ
+
+```
+playing-cards/
+├── png/                    # PNG ਤਸਵੀਰਾਂ
+│   ├── ace_of_clubs.png
+│   ├── ace_of_diamonds.png
+│   ├── ace_of_hearts.png
+│   ├── ace_of_spades.png
+│   ├── 2_of_clubs.png
+│   ├── ...
+│   ├── king_of_spades.png
+│   ├── black_joker.png
+│   └── red_joker.png
+├── svg/                    # SVG ਤਸਵੀਰਾਂ
+│   ├── ace_of_clubs.svg
+│   ├── ...
+│   └── red_joker.svg
+├── cards.json              # ਸਾਰੇ ਪੱਤਿਆਂ ਲਈ JSON ਡਾਟਾ
+├── index.html              # GitHub Pages ਲੈਂਡਿੰਗ ਪੇਜ
+├── LICENSE                 # MIT ਲਾਇਸੈਂਸ
+└── README.md               # ਇਹ ਫਾਈਲ
+```
+
+## 🎴 ਪੱਤਿਆਂ ਦੇ ਨਾਂ ਦੀ ਪਰੰਪਰਾ
+
+ਪੱਤੇ ਇਸ ਨਾਂ ਦੇ ਪੈਟਰਨ ਦੀ ਪਾਲਣਾ ਕਰਦੇ ਹਨ:
+
+- **ਨੰਬਰ ਵਾਲੇ ਪੱਤੇ:** `{ਨੰਬਰ}_of_{ਸੂਟ}.{ext}` (ਜਿਵੇਂ `2_of_hearts.png`)
+- **ਚਿਹਰਾ ਪੱਤੇ:** `{ਚਿਹਰਾ}_of_{ਸੂਟ}.{ext}` (ਜਿਵੇਂ `king_of_spades.svg`)
+- **ਇੱਕਾ:** `ace_of_{ਸੂਟ}.{ext}` (ਜਿਵੇਂ `ace_of_diamonds.png`)
+- **ਜੋਕਰ:** `{ਰੰਗ}_joker.{ext}` (ਜਿਵੇਂ `black_joker.svg`, `red_joker.png`)
+
+### ਸੂਟ
+- `clubs` ♣️ (ਚਿੜੀ)
+- `diamonds` ♦️ (ਇੱਟ)
+- `hearts` ♥️ (ਦਿਲ)
+- `spades` ♠️ (ਪਾਨ)
+
+### ਮੁੱਲ
+- `ace`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `jack`, `queen`, `king`
+
+## 🌍 ਅਨੁਵਾਦ
+
+ਇਹ README ਕਈ ਭਾਸ਼ਾਵਾਂ ਵਿੱਚ ਉਪਲਬਧ ਹੈ। ਹੋਰ ਭਾਸ਼ਾਵਾਂ ਲਈ /readme ਫੋਲਡਰ ਵੇਖੋ।
+
+## 📄 ਲਾਇਸੈਂਸ
+
+ਇਹ ਪ੍ਰੋਜੈਕਟ MIT ਲਾਇਸੈਂਸ ਅਧੀਨ ਹੈ – ਵੇਰਵੇ ਲਈ [LICENSE](../LICENSE) ਫਾਈਲ ਵੇਖੋ।
+
+## 🤝 ਯੋਗਦਾਨ
+
+ਯੋਗਦਾਨ ਦਾ ਸਵਾਗਤ ਹੈ! ਇੰਝ ਕਰੋ:
+
+1. ਰਿਪੋਜ਼ਟਰੀ ਨੂੰ ਫੋਰਕ ਕਰੋ
+2. ਆਪਣੀ ਬ੍ਰਾਂਚ ਬਣਾਓ (`git checkout -b feature/amazing-feature`)
+3. ਬਦਲਾਅ ਕਮਿਟ ਕਰੋ (`git commit -m 'ਸ਼ਾਨਦਾਰ ਫੀਚਰ ਸ਼ਾਮਲ ਕਰੋ'`)
+4. ਬ੍ਰਾਂਚ ਪੁਸ਼ ਕਰੋ (`git push origin feature/amazing-feature`)
+5. ਇੱਕ Pull Request ਖੋਲ੍ਹੋ
+
+## ⭐ ਸਹਿਯੋਗ
+
+ਜੇਕਰ ਤੁਹਾਨੂੰ ਇਹ ਪ੍ਰੋਜੈਕਟ ਲਾਭਕਾਰੀ ਲੱਗੇ, ਤਾਂ GitHub 'ਤੇ ਇਸਨੂੰ ਸਟਾਰ ਦਿਓ!
+
+---
+
+❤️ ਨਾਲ ਬਣਾਇਆ [Webisso](https://github.com/webisso)

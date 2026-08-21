@@ -1,0 +1,353 @@
+{
+  "name": "Playing Cards",
+  "description": "Open source playing card images in PNG and SVG formats",
+  "repository": "https://github.com/webisso/playing-cards",
+  "baseUrl": "https://webisso.github.io/playing-cards",
+  "formats": {
+    "png": {
+      "path": "png",
+      "extension": ".png"
+    },
+    "svg": {
+      "path": "svg",
+      "extension": ".svg"
+    }
+  },
+  "cards": {
+    "clubs": {
+      "ace": {
+        "name": "Ace of Clubs",
+        "png": "png/ace_of_clubs.png",
+        "svg": "svg/ace_of_clubs.svg"
+      },
+      "2": {
+        "name": "2 of Clubs",
+        "png": "png/2_of_clubs.png",
+        "svg": "svg/2_of_clubs.svg"
+      },
+      "3": {
+        "name": "3 of Clubs",
+        "png": "png/3_of_clubs.png",
+        "svg": "svg/3_of_clubs.svg"
+      },
+      "4": {
+        "name": "4 of Clubs",
+        "png": "png/4_of_clubs.png",
+        "svg": "svg/4_of_clubs.svg"
+      },
+      "5": {
+        "name": "5 of Clubs",
+        "png": "png/5_of_clubs.png",
+        "svg": "svg/5_of_clubs.svg"
+      },
+      "6": {
+        "name": "6 of Clubs",
+        "png": "png/6_of_clubs.png",
+        "svg": "svg/6_of_clubs.svg"
+      },
+      "7": {
+        "name": "7 of Clubs",
+        "png": "png/7_of_clubs.png",
+        "svg": "svg/7_of_clubs.svg"
+      },
+      "8": {
+        "name": "8 of Clubs",
+        "png": "png/8_of_clubs.png",
+        "svg": "svg/8_of_clubs.svg"
+      },
+      "9": {
+        "name": "9 of Clubs",
+        "png": "png/9_of_clubs.png",
+        "svg": "svg/9_of_clubs.svg"
+      },
+      "10": {
+        "name": "10 of Clubs",
+        "png": "png/10_of_clubs.png",
+        "svg": "svg/10_of_clubs.svg"
+      },
+      "jack": {
+        "name": "Jack of Clubs",
+        "png": "png/jack_of_clubs.png",
+        "svg": "svg/jack_of_clubs.svg",
+        "variants": {
+          "png": "png/jack_of_clubs2.png",
+          "svg": "svg/jack_of_clubs2.svg"
+        }
+      },
+      "queen": {
+        "name": "Queen of Clubs",
+        "png": "png/queen_of_clubs.png",
+        "svg": "svg/queen_of_clubs.svg",
+        "variants": {
+          "png": "png/queen_of_clubs2.png",
+          "svg": "svg/queen_of_clubs2.svg"
+        }
+      },
+      "king": {
+        "name": "King of Clubs",
+        "png": "png/king_of_clubs.png",
+        "svg": "svg/king_of_clubs.svg",
+        "variants": {
+          "png": "png/king_of_clubs2.png",
+          "svg": "svg/king_of_clubs2.svg"
+        }
+      }
+    },
+    "diamonds": {
+      "ace": {
+        "name": "Ace of Diamonds",
+        "png": "png/ace_of_diamonds.png",
+        "svg": "svg/ace_of_diamonds.svg"
+      },
+      "2": {
+        "name": "2 of Diamonds",
+        "png": "png/2_of_diamonds.png",
+        "svg": "svg/2_of_diamonds.svg"
+      },
+      "3": {
+        "name": "3 of Diamonds",
+        "png": "png/3_of_diamonds.png",
+        "svg": "svg/3_of_diamonds.svg"
+      },
+      "4": {
+        "name": "4 of Diamonds",
+        "png": "png/4_of_diamonds.png",
+        "svg": "svg/4_of_diamonds.svg"
+      },
+      "5": {
+        "name": "5 of Diamonds",
+        "png": "png/5_of_diamonds.png",
+        "svg": "svg/5_of_diamonds.svg"
+      },
+      "6": {
+        "name": "6 of Diamonds",
+        "png": "png/6_of_diamonds.png",
+        "svg": "svg/6_of_diamonds.svg"
+      },
+      "7": {
+        "name": "7 of Diamonds",
+        "png": "png/7_of_diamonds.png",
+        "svg": "svg/7_of_diamonds.svg"
+      },
+      "8": {
+        "name": "8 of Diamonds",
+        "png": "png/8_of_diamonds.png",
+        "svg": "svg/8_of_diamonds.svg"
+      },
+      "9": {
+        "name": "9 of Diamonds",
+        "png": "png/9_of_diamonds.png",
+        "svg": "svg/9_of_diamonds.svg"
+      },
+      "10": {
+        "name": "10 of Diamonds",
+        "png": "png/10_of_diamonds.png",
+        "svg": "svg/10_of_diamonds.svg"
+      },
+      "jack": {
+        "name": "Jack of Diamonds",
+        "png": "png/jack_of_diamonds.png",
+        "svg": "svg/jack_of_diamonds.svg",
+        "variants": {
+          "png": "png/jack_of_diamonds2.png",
+          "svg": "svg/jack_of_diamonds2.svg"
+        }
+      },
+      "queen": {
+        "name": "Queen of Diamonds",
+        "png": "png/queen_of_diamonds.png",
+        "svg": "svg/queen_of_diamonds.svg",
+        "variants": {
+          "png": "png/queen_of_diamonds2.png",
+          "svg": "svg/queen_of_diamonds2.svg"
+        }
+      },
+      "king": {
+        "name": "King of Diamonds",
+        "png": "png/king_of_diamonds.png",
+        "svg": "svg/king_of_diamonds.svg",
+        "variants": {
+          "png": "png/king_of_diamonds2.png",
+          "svg": "svg/king_of_diamonds2.svg"
+        }
+      }
+    },
+    "hearts": {
+      "ace": {
+        "name": "Ace of Hearts",
+        "png": "png/ace_of_hearts.png",
+        "svg": "svg/ace_of_hearts.svg"
+      },
+      "2": {
+        "name": "2 of Hearts",
+        "png": "png/2_of_hearts.png",
+        "svg": "svg/2_of_hearts.svg"
+      },
+      "3": {
+        "name": "3 of Hearts",
+        "png": "png/3_of_hearts.png",
+        "svg": "svg/3_of_hearts.svg"
+      },
+      "4": {
+        "name": "4 of Hearts",
+        "png": "png/4_of_hearts.png",
+        "svg": "svg/4_of_hearts.svg"
+      },
+      "5": {
+        "name": "5 of Hearts",
+        "png": "png/5_of_hearts.png",
+        "svg": "svg/5_of_hearts.svg"
+      },
+      "6": {
+        "name": "6 of Hearts",
+        "png": "png/6_of_hearts.png",
+        "svg": "svg/6_of_hearts.svg"
+      },
+      "7": {
+        "name": "7 of Hearts",
+        "png": "png/7_of_hearts.png",
+        "svg": "svg/7_of_hearts.svg"
+      },
+      "8": {
+        "name": "8 of Hearts",
+        "png": "png/8_of_hearts.png",
+        "svg": "svg/8_of_hearts.svg"
+      },
+      "9": {
+        "name": "9 of Hearts",
+        "png": "png/9_of_hearts.png",
+        "svg": "svg/9_of_hearts.svg"
+      },
+      "10": {
+        "name": "10 of Hearts",
+        "png": "png/10_of_hearts.png",
+        "svg": "svg/10_of_hearts.svg"
+      },
+      "jack": {
+        "name": "Jack of Hearts",
+        "png": "png/jack_of_hearts.png",
+        "svg": "svg/jack_of_hearts.svg",
+        "variants": {
+          "png": "png/jack_of_hearts2.png",
+          "svg": "svg/jack_of_hearts2.svg"
+        }
+      },
+      "queen": {
+        "name": "Queen of Hearts",
+        "png": "png/queen_of_hearts.png",
+        "svg": "svg/queen_of_hearts.svg",
+        "variants": {
+          "png": "png/queen_of_hearts2.png",
+          "svg": "svg/queen_of_hearts2.svg"
+        }
+      },
+      "king": {
+        "name": "King of Hearts",
+        "png": "png/king_of_hearts.png",
+        "svg": "svg/king_of_hearts.svg",
+        "variants": {
+          "png": "png/king_of_hearts2.png",
+          "svg": "svg/king_of_hearts2.svg"
+        }
+      }
+    },
+    "spades": {
+      "ace": {
+        "name": "Ace of Spades",
+        "png": "png/ace_of_spades.png",
+        "svg": "svg/ace_of_spades.svg",
+        "variants": {
+          "png": "png/ace_of_spades2.png",
+          "svg": "svg/ace_of_spades2.svg"
+        }
+      },
+      "2": {
+        "name": "2 of Spades",
+        "png": "png/2_of_spades.png",
+        "svg": "svg/2_of_spades.svg"
+      },
+      "3": {
+        "name": "3 of Spades",
+        "png": "png/3_of_spades.png",
+        "svg": "svg/3_of_spades.svg"
+      },
+      "4": {
+        "name": "4 of Spades",
+        "png": "png/4_of_spades.png",
+        "svg": "svg/4_of_spades.svg"
+      },
+      "5": {
+        "name": "5 of Spades",
+        "png": "png/5_of_spades.png",
+        "svg": "svg/5_of_spades.svg"
+      },
+      "6": {
+        "name": "6 of Spades",
+        "png": "png/6_of_spades.png",
+        "svg": "svg/6_of_spades.svg"
+      },
+      "7": {
+        "name": "7 of Spades",
+        "png": "png/7_of_spades.png",
+        "svg": "svg/7_of_spades.svg"
+      },
+      "8": {
+        "name": "8 of Spades",
+        "png": "png/8_of_spades.png",
+        "svg": "svg/8_of_spades.svg"
+      },
+      "9": {
+        "name": "9 of Spades",
+        "png": "png/9_of_spades.png",
+        "svg": "svg/9_of_spades.svg"
+      },
+      "10": {
+        "name": "10 of Spades",
+        "png": "png/10_of_spades.png",
+        "svg": "svg/10_of_spades.svg"
+      },
+      "jack": {
+        "name": "Jack of Spades",
+        "png": "png/jack_of_spades.png",
+        "svg": "svg/jack_of_spades.svg",
+        "variants": {
+          "png": "png/jack_of_spades2.png",
+          "svg": "svg/jack_of_spades2.svg"
+        }
+      },
+      "queen": {
+        "name": "Queen of Spades",
+        "png": "png/queen_of_spades.png",
+        "svg": "svg/queen_of_spades.svg",
+        "variants": {
+          "png": "png/queen_of_spades2.png",
+          "svg": "svg/queen_of_spades2.svg"
+        }
+      },
+      "king": {
+        "name": "King of Spades",
+        "png": "png/king_of_spades.png",
+        "svg": "svg/king_of_spades.svg",
+        "variants": {
+          "png": "png/king_of_spades2.png",
+          "svg": "svg/king_of_spades2.svg"
+        }
+      }
+    },
+    "jokers": {
+      "black": {
+        "name": "Black Joker",
+        "png": "png/black_joker.png",
+        "svg": "svg/black_joker.svg"
+      },
+      "red": {
+        "name": "Red Joker",
+        "png": "png/red_joker.png",
+        "svg": "svg/red_joker.svg"
+      }
+    }
+  },
+  "totalCards": 54,
+  "suits": ["clubs", "diamonds", "hearts", "spades"],
+  "ranks": ["ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "jack", "queen", "king"]
+}

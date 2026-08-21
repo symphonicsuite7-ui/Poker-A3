@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="screen-orientation" content="landscape" />
+  <meta name="x5-orientation" content="landscape" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>本地试玩 · 四人扑克</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <section class="screen screen-game">
+    <div class="app">
+      <header class="topbar">
+        <h1>本地试玩</h1>
+        <div class="topbar-actions">
+          <span class="meta-chip">模拟线上 · 只看自己的牌</span>
+          <button type="button" id="btn-new" class="btn">新开一局</button>
+          <button type="button" id="btn-next" class="btn btn-primary" hidden>再来一局</button>
+          <a class="btn btn-ghost" href="/">返回登录</a>
+        </div>
+      </header>
+
+      <main class="table">
+        <div class="seat seat-top" id="seat-top"></div>
+        <div class="seat seat-left" id="seat-left"></div>
+        <div class="center-info">
+          <div id="turn-info" class="turn-info"></div>
+          <div id="last-play" class="last-play"></div>
+          <div id="team-info" class="team-info"></div>
+        </div>
+        <div class="seat seat-right" id="seat-right"></div>
+        <div class="table-bottom">
+          <section class="controls">
+            <div id="hint" class="hint">选择要出的牌</div>
+            <div class="control-btns">
+              <button type="button" id="btn-play" class="btn btn-primary">出牌</button>
+              <button type="button" id="btn-pass" class="btn">过牌</button>
+              <button type="button" id="btn-draw-give" class="btn btn-primary" hidden>确认还牌</button>
+              <button type="button" id="btn-clear" class="btn btn-ghost">清空选择</button>
+            </div>
+          </section>
+          <div class="seat seat-bottom" id="seat-bottom"></div>
+        </div>
+      </main>
+
+      <aside class="log-panel">
+        <h2>出牌记录</h2>
+        <ul id="log" class="log"></ul>
+      </aside>
+    </div>
+  </section>
+
+  <div id="draw-overlay" class="draw-overlay" hidden>
+    <div class="draw-panel">
+      <h2 id="draw-title">抽牌</h2>
+      <p id="draw-desc" class="draw-desc"></p>
+      <div id="draw-targets" class="draw-targets"></div>
+      <div id="draw-cards" class="draw-card-groups"></div>
+      <div id="draw-timer" class="draw-timer"></div>
+    </div>
+  </div>
+
+  <script src="/js/cards.js"></script>
+  <script src="/js/rules.js"></script>
+  <script src="/js/local-game.js"></script>
+  <script src="/js/gallery.js"></script>
+  <script src="/js/mobile.js"></script>
+  <script src="/js/local.js"></script>
+</body>
+</html>
