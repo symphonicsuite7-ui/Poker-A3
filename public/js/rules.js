@@ -262,9 +262,80 @@
     return { ok: true, play: play };
   }
 
+  function beatSizes(lastPlay) {
+    if (!lastPlay) return [1, 2, 3, 4, 5];
+    if (lastPlay.type === 'single') return [1];
+    if (lastPlay.type === 'pair') return [2];
+    if (lastPlay.type === 'triple') return [3];
+    if (lastPlay.type === 'quad') return [4];
+    return [5];
+  }
+
+  function eachCombo(arr, k, fn) {
+    const n = arr.length;
+    if (k < 1 || k > n) return;
+    const idx = [];
+    function rec(start, depth) {
+      if (depth === k) {
+        const cards = [];
+        for (let i = 0; i < k; i++) cards.push(arr[idx[i]]);
+        fn(cards);
+        return;
+      }
+      for (let i = start; i <= n - (k - depth); i++) {
+        idx[depth] = i;
+        rec(i + 1, depth + 1);
+      }
+    }
+    rec(0, 0);
+  }
+
+  /**
+   * 找一手最小的合法出牌（预选提示用）。
+   * opts.requireDiamond4：本局首出必须含方片4。
+   * 返回 { ids, play } 或 null。
+   */
+  function findSmallestLegalPlay(hand, lastPlay, opts) {
+    opts = opts || {};
+    if (!hand || !hand.length) return null;
+    const requireD4 = !!opts.requireDiamond4;
+    const isDiamond4 = global.PokerCards && global.PokerCards.isDiamond4;
+    const sizes = beatSizes(lastPlay);
+    let best = null;
+    for (let s = 0; s < sizes.length; s++) {
+      const size = sizes[s];
+      eachCombo(hand, size, function (cards) {
+        if (requireD4 && isDiamond4 && !cards.some(isDiamond4)) return;
+        const v = validatePlay(cards, lastPlay || null);
+        if (!v.ok) return;
+        const key =
+          v.play.keyCard ||
+          cards.reduce(function (m, c) {
+            return compareSingle(c, m) > 0 ? c : m;
+          }, cards[0]);
+        if (
+          !best ||
+          size < best.size ||
+          (size === best.size && compareSingle(key, best.key) < 0)
+        ) {
+          best = {
+            ids: cards.map(function (c) {
+              return c.id;
+            }),
+            play: v.play,
+            size: size,
+            key: key,
+          };
+        }
+      });
+    }
+    return best ? { ids: best.ids, play: best.play } : null;
+  }
+
   global.PokerRules = {
     identifyPlay: identifyPlay,
     canBeat: canBeat,
     validatePlay: validatePlay,
+    findSmallestLegalPlay: findSmallestLegalPlay,
   };
 })(window);

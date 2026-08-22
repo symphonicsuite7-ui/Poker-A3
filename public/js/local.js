@@ -436,11 +436,42 @@
     }
     const suit = SUITS[card.suit];
     div.classList.add(suit.color);
+    if (card.id != null) div.dataset.cardId = card.id;
     if (opts.selectable) div.classList.add('playable');
     if (opts.selectedFlag) div.classList.add('selected');
     div.innerHTML = PokerCards.cardFaceHtml(card);
     div.title = suit.name + RANKS[card.rank].name;
     return div;
+  }
+
+  /** 只更新选牌高亮和提示，避免整桌重绘导致闪屏。 */
+  function updateSelectionUi() {
+    const myTurn = state.phase === 'playing' && state.currentPlayer === MY_SEAT;
+    const drawGive = state.phase === 'draw' && state.draw && state.draw.step === 'give';
+    const giveGainer =
+      drawGive &&
+      state.draw.gainers.find((g) => g.seat === MY_SEAT && !mapGet(state.draw.gives, g.seat));
+    const canGive = !!giveGainer;
+    const ids = selectedIds();
+    const hand = $('seat-bottom') && $('seat-bottom').querySelector('.hand');
+    if (hand) {
+      const nodes = hand.querySelectorAll('.card[data-card-id]');
+      for (let i = 0; i < nodes.length; i++) {
+        const id = nodes[i].dataset.cardId;
+        nodes[i].classList.toggle('selected', !!selected[id]);
+      }
+    }
+    if (state.phase === 'playing') {
+      $('btn-play').disabled = !(myTurn && ids.length > 0);
+      if ($('btn-suggest')) $('btn-suggest').disabled = !myTurn;
+      $('hint').textContent = myTurn
+        ? previewText(ids)
+        : '等待 ' + state.players[state.currentPlayer].name + ' 出牌';
+    } else if (canGive) {
+      $('btn-draw-give').disabled = ids.length !== giveGainer.amount;
+      if ($('btn-suggest')) $('btn-suggest').disabled = true;
+      $('hint').textContent = '已选 ' + ids.length + ' / ' + giveGainer.amount + ' 张还牌';
+    }
   }
 
   function previewText(cardIds) {
@@ -456,7 +487,20 @@
     const free = state.lastPlay === null;
     const v = PokerRules.validatePlay(selectedCards, free ? null : state.lastPlay);
     if (!v.ok) return v.reason;
+    if (isOpeningLead(state) && !selectedCards.some(PokerCards.isDiamond4)) {
+      return '首出必须包含方片4';
+    }
     return '可出：' + play.label;
+  }
+
+  /** 本局第一次出牌才必须带方片4；全过后再出不算初出。 */
+  function isOpeningLead(g) {
+    if (!g || g.lastPlay != null) return false;
+    const events = g.events || [];
+    for (let i = 0; i < events.length; i++) {
+      if (events[i].kind === 'play') return false;
+    }
+    return true;
   }
 
   function renderLastPlay(play) {
@@ -483,10 +527,77 @@
     );
   }
 
+  /** 每位玩家最近一次出牌/过牌（保留到该玩家再次行动） */
+  function lastTableAction(seatId) {
+    const events = (state && state.events) || [];
+    for (let i = events.length - 1; i >= 0; i--) {
+      const ev = events[i];
+      if ((ev.kind === 'play' || ev.kind === 'pass') && ev.seat == seatId) {
+        return ev;
+      }
+    }
+    return null;
+  }
+
+  /** 全场最近一次「出牌」的座位；过牌不影响，上一手保持大牌 */
+  function latestPlaySeat() {
+    const events = (state && state.events) || [];
+    for (let i = events.length - 1; i >= 0; i--) {
+      if (events[i].kind === 'play') return events[i].seat;
+    }
+    return null;
+  }
+
+  function renderSeatPlay(ev, opts) {
+    opts = opts || {};
+    const wrap = document.createElement('div');
+    wrap.className = 'seat-play' + (opts.fresh ? ' seat-play--fresh' : '');
+    if (!ev) return wrap;
+    if (ev.kind === 'pass') {
+      wrap.innerHTML = '<span class="seat-pass">过牌</span>';
+      return wrap;
+    }
+    wrap.innerHTML = '<div class="seat-play-cards">' + cardsRowHtml(ev.cards) + '</div>';
+    return wrap;
+  }
+
+  function fillCenterPlays() {
+    const freshSeat = latestPlaySeat();
+    const sides = {
+      bottom: MY_SEAT,
+      right: (MY_SEAT + 1) % 4,
+      top: (MY_SEAT + 2) % 4,
+      left: (MY_SEAT + 3) % 4,
+    };
+    Object.keys(sides).forEach((side) => {
+      const el = $('seat-play-' + side);
+      if (!el) return;
+      el.innerHTML = '';
+      const last = lastTableAction(sides[side]);
+      const fresh = !!(last && last.kind === 'play' && sides[side] === freshSeat);
+      const playEl = renderSeatPlay(last, { fresh: fresh });
+      if (playEl && playEl.childNodes.length) {
+        el.appendChild(playEl);
+      }
+    });
+  }
+
+  function formatLogTime(at) {
+    if (!at) return '';
+    const d = new Date(at);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    return hh + ':' + mm + ':' + ss;
+  }
+
   function renderLogItem(ev) {
     const li = document.createElement('li');
     li.className = 'log-item' + (ev.kind === 'system' ? ' system' : '');
     const avatar = ev.seat != null ? avatarImg(playerAvatar(ev.seat)) : '';
+    const timeHtml = ev.at
+      ? '<span class="log-item-time">' + formatLogTime(ev.at) + '</span>'
+      : '';
     if (ev.kind === 'play') {
       li.innerHTML =
         '<div class="log-item-head">' +
@@ -495,7 +606,9 @@
         ev.name +
         '</span><span class="log-item-tag">' +
         (ev.label || '出牌') +
-        '</span></div><div class="log-cards">' +
+        '</span>' +
+        timeHtml +
+        '</div><div class="log-cards">' +
         cardsRowHtml(ev.cards) +
         '</div>';
     } else if (ev.kind === 'pass') {
@@ -504,7 +617,9 @@
         avatar +
         '<span class="log-item-name">' +
         ev.name +
-        '</span><span class="log-item-tag">过牌</span></div>';
+        '</span><span class="log-item-tag">过牌</span>' +
+        timeHtml +
+        '</div>';
     } else {
       li.innerHTML =
         '<div class="log-item-head">' +
@@ -514,7 +629,9 @@
           : '') +
         '<span class="log-item-text">' +
         ev.text +
-        '</span></div>' +
+        '</span>' +
+        timeHtml +
+        '</div>' +
         (ev.cards && ev.cards.length
           ? '<div class="log-cards">' + cardsRowHtml(ev.cards) + '</div>'
           : '');
@@ -536,13 +653,20 @@
       player.finishedRank !== null && !(player.hand && player.hand.length)
     );
 
+    const thinking =
+      !!opts.thinking && state.phase === 'playing' && player.finishedRank == null;
     const info = document.createElement('div');
     info.className = 'seat-info';
     let meta = player.hand.length + '张 · ' + player.score + '点';
     if (player.finishedRank !== null) meta += ' · 第' + player.finishedRank + '名';
     info.innerHTML =
       '<div class="avatar-wrap">' +
+      '<div class="avatar-box">' +
       avatarImg(playerAvatar(player.id)) +
+      (thinking
+        ? '<div class="think-bubble" aria-hidden="true"><span></span><span></span><span></span></div>'
+        : '') +
+      '</div>' +
       goodsTagHtml(player.goodsMark) +
       '</div>' +
       '<div><div class="pname">' +
@@ -550,8 +674,17 @@
       (isMe ? '（我）' : '') +
       '</div><div class="meta">' +
       meta +
+      '</div><div class="seat-stats">' +
+      '<span class="stat-chip">' +
+      player.hand.length +
+      ' 牌</span>' +
+      '<span class="stat-chip pts">' +
+      player.score +
+      ' 分</span>' +
+      (player.finishedRank !== null
+        ? '<span class="stat-chip">第' + player.finishedRank + '</span>'
+        : '') +
       '</div></div>';
-    el.appendChild(info);
 
     const hand = document.createElement('div');
     hand.className = 'hand ' + (opts.vertical ? 'vertical' : 'horizontal');
@@ -564,10 +697,11 @@
           selectedFlag: selectable && !!selected[card.id],
         });
         if (selectable) {
-          node.addEventListener('click', () => {
+          node.addEventListener('click', (e) => {
+            e.preventDefault();
             if (selected[card.id]) delete selected[card.id];
             else selected[card.id] = true;
-            render();
+            updateSelectionUi();
           });
         }
         hand.appendChild(node);
@@ -577,7 +711,13 @@
         hand.appendChild(renderCard(null, { faceDown: true }));
       }
     }
-    el.appendChild(hand);
+    if (opts.infoRight) {
+      el.appendChild(hand);
+      el.appendChild(info);
+    } else {
+      el.appendChild(info);
+      el.appendChild(hand);
+    }
   }
 
   function render() {
@@ -593,11 +733,13 @@
       $('btn-next').hidden = false;
       $('btn-play').disabled = true;
       $('btn-pass').disabled = true;
+      if ($('btn-suggest')) $('btn-suggest').disabled = true;
       $('btn-draw-give').hidden = true;
     } else if (state.phase === 'draw') {
       $('btn-next').hidden = true;
       $('btn-play').disabled = true;
       $('btn-pass').disabled = true;
+      if ($('btn-suggest')) $('btn-suggest').disabled = true;
       if (canGive) {
         const targetSeat = mapGet(state.draw.picks, MY_SEAT);
         $('turn-info').textContent =
@@ -623,10 +765,11 @@
       $('btn-next').hidden = true;
       $('btn-play').disabled = !(myTurn && selectedIds().length > 0);
       $('btn-pass').disabled = !(myTurn && state.lastPlay !== null);
+      if ($('btn-suggest')) $('btn-suggest').disabled = !myTurn;
       $('btn-draw-give').hidden = true;
     }
 
-    $('last-play').innerHTML = renderLastPlay(state.lastPlay);
+    fillCenterPlays();
 
     if (state.revealedTeam || state.phase === 'settled') {
       if (state.solo) {
@@ -647,22 +790,31 @@
     }
 
     const revealAll = state.phase === 'settled';
+    const thinkingSeat = state.phase === 'playing' ? state.currentPlayer : -1;
+    if ($('turn-banner')) {
+      $('turn-banner').classList.toggle('is-on', myTurn);
+    }
     fillSeat($('seat-bottom'), state.players[MY_SEAT], {
       selectable: myTurn || canGive,
       showFace: true,
       vertical: false,
+      infoRight: true,
+      thinking: thinkingSeat === MY_SEAT,
     });
     fillSeat($('seat-right'), state.players[(MY_SEAT + 1) % 4], {
       showFace: revealAll,
       vertical: true,
+      thinking: thinkingSeat === (MY_SEAT + 1) % 4,
     });
     fillSeat($('seat-top'), state.players[(MY_SEAT + 2) % 4], {
       showFace: revealAll,
       vertical: false,
+      thinking: thinkingSeat === (MY_SEAT + 2) % 4,
     });
     fillSeat($('seat-left'), state.players[(MY_SEAT + 3) % 4], {
       showFace: revealAll,
       vertical: true,
+      thinking: thinkingSeat === (MY_SEAT + 3) % 4,
     });
 
     if (state.phase === 'playing') {
@@ -693,7 +845,7 @@
 
   $('btn-clear').addEventListener('click', () => {
     clearSelected();
-    render();
+    updateSelectionUi();
   });
 
   $('btn-draw-give').addEventListener('click', () => {
@@ -730,6 +882,27 @@
     clearSelected();
     render();
   });
+
+  if ($('btn-suggest')) {
+    $('btn-suggest').addEventListener('click', () => {
+      if (state.phase !== 'playing' || state.currentPlayer !== MY_SEAT) return;
+      const me = state.players[MY_SEAT];
+      const free = state.lastPlay === null;
+      const found = PokerRules.findSmallestLegalPlay(me.hand, free ? null : state.lastPlay, {
+        requireDiamond4: isOpeningLead(state),
+      });
+      clearSelected();
+      if (!found) {
+        $('hint').textContent =
+          state.lastPlay != null ? '没有能压过的牌，可以过牌' : '没有合法出牌';
+        updateSelectionUi();
+        return;
+      }
+      for (let i = 0; i < found.ids.length; i++) selected[found.ids[i]] = true;
+      updateSelectionUi();
+      $('hint').textContent = '提示：' + (found.play.label || '可出') + '（已选中）';
+    });
+  }
 
   $('btn-new').addEventListener('click', () => {
     if (!confirm('确定重新开局？累计胜点将清零。')) return;

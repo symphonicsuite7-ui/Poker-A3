@@ -21,24 +21,80 @@
   let game = null;
   let selected = {};
   let authMode = 'login';
-  let selectedAvatar = '/avatars/preset-1.svg';
   let customAvatarFile = null;
   let lastEventCount = 0;
 
   const $ = (id) => document.getElementById(id);
 
-  function avatarSrc(url) {
-    return url || '/avatars/preset-1.svg';
+  const LETTER_COLORS = ['#3d5a80', '#2f6b4f', '#6b4a2f', '#4a3d6b', '#6b3d4a', '#2f5a6b'];
+
+  function firstChar(text) {
+    const s = (text || '').trim();
+    return s ? s.charAt(0).toUpperCase() : '?';
   }
 
-  function avatarImg(url, extraClass) {
+  function letterColor(ch) {
+    let h = 0;
+    for (let i = 0; i < ch.length; i++) h = (h * 31 + ch.charCodeAt(i)) >>> 0;
+    return LETTER_COLORS[h % LETTER_COLORS.length];
+  }
+
+  function avatarSrc(url) {
+    return url || '';
+  }
+
+  /** 渲染头像：有图用 img，否则用名字首字 */
+  function avatarImg(url, extraClass, nameHint) {
+    const cls = 'avatar' + (extraClass ? ' ' + extraClass : '');
+    if (url) {
+      return '<img class="' + cls + '" src="' + url + '" alt="" />';
+    }
+    const ch = firstChar(nameHint);
     return (
-      '<img class="avatar' +
-      (extraClass ? ' ' + extraClass : '') +
-      '" src="' +
-      avatarSrc(url) +
-      '" alt="" />'
+      '<span class="' +
+      cls +
+      ' avatar-letter" style="background:' +
+      letterColor(ch) +
+      '">' +
+      ch +
+      '</span>'
     );
+  }
+
+  function refreshAuthLetterPreview() {
+    const letterEl = $('avatar-letter');
+    if (!letterEl) return;
+    const name = $('auth-username').value.trim() || $('auth-nickname').value.trim();
+    const ch = firstChar(name);
+    letterEl.textContent = ch;
+    letterEl.style.background = letterColor(ch);
+  }
+
+  function showAuthLetterPreview() {
+    customAvatarFile = null;
+    if ($('auth-avatar-file')) $('auth-avatar-file').value = '';
+    if ($('avatar-preview')) {
+      $('avatar-preview').hidden = true;
+      $('avatar-preview').removeAttribute('src');
+    }
+    if ($('avatar-letter')) $('avatar-letter').hidden = false;
+    if ($('btn-clear-avatar')) $('btn-clear-avatar').hidden = true;
+    refreshAuthLetterPreview();
+  }
+
+  function showAuthUploadPreview(url) {
+    if ($('avatar-letter')) $('avatar-letter').hidden = true;
+    if ($('avatar-preview')) {
+      $('avatar-preview').hidden = false;
+      $('avatar-preview').src = url;
+    }
+    if ($('btn-clear-avatar')) $('btn-clear-avatar').hidden = false;
+  }
+
+  function setLobbyAvatar(url, name) {
+    const host = $('lobby-avatar');
+    if (!host) return;
+    host.innerHTML = avatarImg(url, '', name || '');
   }
 
   let drawTickId = null;
@@ -121,7 +177,7 @@
         btn.disabled = !canPick;
         const p = game.players[loser.seat];
         btn.innerHTML =
-          avatarImg(p.avatar) +
+          avatarImg(p.avatar, '', p.name) +
           '<span>' +
           p.name +
           '</span><span class="meta">上一局 -' +
@@ -185,9 +241,9 @@
     el.textContent = msg;
   }
 
-  async function api(path, body) {
+  async function api(path, body, method) {
     const opts = {
-      method: body ? 'POST' : 'GET',
+      method: method || (body ? 'POST' : 'GET'),
       headers: {},
     };
     if (token) opts.headers.Authorization = 'Bearer ' + token;
@@ -226,23 +282,19 @@
     localStorage.removeItem(USER_KEY);
   }
 
-  function connectSocket() {
-    if (socket) {
-      socket.disconnect();
-      socket = null;
-    }
-    socket = io({
-      auth: { token: token },
-    });
+  function useNativeWs() {
+    return window.A3_NATIVE_WS === true || typeof io !== 'function' || location.port === '8080';
+  }
 
-    socket.on('connect_error', () => {
+  function bindSocketHandlers(sock) {
+    sock.on('connect_error', () => {
       clearAuth();
       disconnectSocket();
       showScreen('auth');
       setError($('auth-error'), '登录已失效，请重新登录');
     });
 
-    socket.on('room:update', (payload) => {
+    sock.on('room:update', (payload) => {
       const prevPhase = game && game.phase;
       const prevStep = game && game.draw && game.draw.step;
       room = payload.room;
@@ -267,6 +319,44 @@
         showScreen('game');
       }
     });
+  }
+
+  function whenConnected(sock) {
+    if (!sock) {
+      return Promise.resolve();
+    }
+    if (sock.connected) {
+      return Promise.resolve();
+    }
+    if (sock.ready) {
+      return sock.ready;
+    }
+    return new Promise(function (resolve) {
+      let done = false;
+      function finish() {
+        if (done) return;
+        done = true;
+        resolve();
+      }
+      sock.on('connect', finish);
+      setTimeout(finish, 8000);
+    });
+  }
+
+  function connectSocket() {
+    if (socket) {
+      socket.disconnect();
+      socket = null;
+    }
+    if (useNativeWs() && window.A3NativeSocket) {
+      socket = window.A3NativeSocket.connect(token);
+    } else {
+      socket = io({
+        auth: { token: token },
+      });
+    }
+    bindSocketHandlers(socket);
+    return whenConnected(socket);
   }
 
   function disconnectSocket() {
@@ -305,34 +395,41 @@
       tab.classList.add('active');
       $('btn-auth').textContent = authMode === 'login' ? '登录' : '注册';
       $('avatar-picker').hidden = authMode !== 'register';
+      $('auth-nickname-wrap').hidden = authMode !== 'register';
+      if (authMode === 'register') showAuthLetterPreview();
       setError($('auth-error'), '');
     });
   });
 
-  document.querySelectorAll('.avatar-opt').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      customAvatarFile = null;
-      $('auth-avatar-file').value = '';
-      selectedAvatar = btn.dataset.avatar;
-      $('avatar-preview').src = selectedAvatar;
-      document.querySelectorAll('.avatar-opt').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
+  if ($('auth-username')) {
+    $('auth-username').addEventListener('input', refreshAuthLetterPreview);
+  }
+  if ($('auth-nickname')) {
+    $('auth-nickname').addEventListener('input', refreshAuthLetterPreview);
+  }
 
-  $('auth-avatar-file').addEventListener('change', () => {
-    const file = $('auth-avatar-file').files[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setError($('auth-error'), '头像不能超过 2MB');
-      $('auth-avatar-file').value = '';
-      return;
-    }
-    customAvatarFile = file;
-    document.querySelectorAll('.avatar-opt').forEach((b) => b.classList.remove('active'));
-    const url = URL.createObjectURL(file);
-    $('avatar-preview').src = url;
-  });
+  if ($('btn-clear-avatar')) {
+    $('btn-clear-avatar').addEventListener('click', () => {
+      showAuthLetterPreview();
+    });
+  }
+
+  if ($('auth-avatar-file')) {
+    $('auth-avatar-file').addEventListener('change', () => {
+      const file = $('auth-avatar-file').files[0];
+      if (!file) {
+        showAuthLetterPreview();
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        setError($('auth-error'), '头像不能超过 2MB');
+        showAuthLetterPreview();
+        return;
+      }
+      customAvatarFile = file;
+      showAuthUploadPreview(URL.createObjectURL(file));
+    });
+  }
 
   $('form-auth').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -346,7 +443,7 @@
       const form = new FormData();
       form.append('username', username);
       form.append('password', password);
-      form.append('avatar', selectedAvatar);
+      form.append('nickname', $('auth-nickname').value.trim());
       if (customAvatarFile) form.append('avatarFile', customAvatarFile);
       result = await apiForm('/api/register', form);
     }
@@ -367,11 +464,31 @@
     showScreen('auth');
   });
 
+  function applyUser(next) {
+    if (!next) return;
+    user = Object.assign(user || {}, next);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    if ($('lobby-username')) {
+      $('lobby-username').textContent = user.nickname || user.username || '';
+    }
+    if ($('lobby-avatar')) {
+      setLobbyAvatar(user.avatar, user.nickname || user.username);
+    }
+    if (user.background && user.background.url && (!room || !room.background)) {
+      PokerGallery.applyBackground(user.background.url);
+      PokerGallery.saveLocal(user.background);
+    }
+  }
+
   async function enterLobby() {
-    $('lobby-username').textContent = user.username;
-    $('lobby-avatar').src = avatarSrc(user.avatar);
-    connectSocket();
+    const info = await api('/api/user/info');
+    if (info && info.ok && info.user) {
+      applyUser(info.user);
+    }
+    $('lobby-username').textContent = (user && (user.nickname || user.username)) || '';
+    setLobbyAvatar(user && user.avatar, user && (user.nickname || user.username));
     showScreen('lobby');
+    await connectSocket();
     const sync = await emit('room:sync');
     if (sync && sync.ok && sync.room) {
       room = sync.room;
@@ -433,7 +550,7 @@
         if (!p.online) tags.push('离线');
         li.innerHTML =
           '<span class="seat-player">' +
-          avatarImg(p.avatar) +
+          avatarImg(p.avatar, '', p.username || p.name) +
           '<span>' +
           p.username +
           '</span></span><span class="tag">' +
@@ -502,7 +619,20 @@
     const free = game.lastPlay === null;
     const v = PokerRules.validatePlay(selectedCards, free ? null : game.lastPlay);
     if (!v.ok) return v.reason;
+    if (isOpeningLead(game) && !selectedCards.some(PokerCards.isDiamond4)) {
+      return '首出必须包含方片4';
+    }
     return '可出：' + play.label;
+  }
+
+  /** 本局第一次出牌才必须带方片4；全过后再出不算初出。 */
+  function isOpeningLead(g) {
+    if (!g || g.lastPlay != null) return false;
+    const events = g.events || [];
+    for (let i = 0; i < events.length; i++) {
+      if (events[i].kind === 'play') return false;
+    }
+    return true;
   }
 
   function cardHtml(card, extraClass) {
@@ -534,11 +664,41 @@
     }
     const suit = SUITS[card.suit];
     div.classList.add(suit.color);
+    if (card.id != null) div.dataset.cardId = card.id;
     if (opts.selectable) div.classList.add('playable');
     if (opts.selectedFlag) div.classList.add('selected');
     div.innerHTML = PokerCards.cardFaceHtml(card);
     div.title = suit.name + RANKS[card.rank].name;
     return div;
+  }
+
+  /** 只更新选牌高亮和提示，避免整桌重绘导致闪屏。 */
+  function updateSelectionUi() {
+    if (!game || !room) return;
+    const myTurn = game.phase === 'playing' && game.mySeat === game.currentPlayer;
+    const d = game.draw;
+    const canGive =
+      game.phase === 'draw' && d && d.step === 'give' && d.isGainer && !d.myGiveDone;
+    const ids = selectedIds();
+    const hand = $('seat-bottom') && $('seat-bottom').querySelector('.hand');
+    if (hand) {
+      const nodes = hand.querySelectorAll('.card[data-card-id]');
+      for (let i = 0; i < nodes.length; i++) {
+        const id = nodes[i].dataset.cardId;
+        nodes[i].classList.toggle('selected', !!selected[id]);
+      }
+    }
+    if (game.phase === 'playing') {
+      $('btn-play').disabled = !(myTurn && ids.length > 0);
+      if ($('btn-suggest')) $('btn-suggest').disabled = !myTurn;
+      $('hint').textContent = myTurn
+        ? previewText(ids)
+        : '等待 ' + game.players[game.currentPlayer].name + ' 出牌';
+    } else if (canGive) {
+      $('btn-draw-give').disabled = ids.length !== d.myAmount;
+      if ($('btn-suggest')) $('btn-suggest').disabled = true;
+      $('hint').textContent = '已选 ' + ids.length + ' / ' + d.myAmount + ' 张还牌';
+    }
   }
 
   function renderLastPlay(play) {
@@ -548,7 +708,7 @@
     const who =
       game.lastPlayPlayer != null ? game.players[game.lastPlayPlayer] : null;
     const name = who ? who.name : '';
-    const avatar = who ? avatarImg(who.avatar) : '';
+    const avatar = who ? avatarImg(who.avatar, '', who.name) : '';
     return (
       '<div class="last-play-box">' +
       '<div class="last-play-who">' +
@@ -567,19 +727,90 @@
     );
   }
 
+  /** 每位玩家最近一次出牌/过牌（保留到该玩家再次行动） */
+  function lastTableAction(seatId) {
+    const events = (game && game.events) || [];
+    for (let i = events.length - 1; i >= 0; i--) {
+      const ev = events[i];
+      if ((ev.kind === 'play' || ev.kind === 'pass') && ev.seat == seatId) {
+        return ev;
+      }
+    }
+    return null;
+  }
+
+  /** 全场最近一次「出牌」的座位；过牌不影响，上一手保持大牌 */
+  function latestPlaySeat() {
+    const events = (game && game.events) || [];
+    for (let i = events.length - 1; i >= 0; i--) {
+      if (events[i].kind === 'play') return events[i].seat;
+    }
+    return null;
+  }
+
+  function renderSeatPlay(ev, opts) {
+    opts = opts || {};
+    const wrap = document.createElement('div');
+    wrap.className = 'seat-play' + (opts.fresh ? ' seat-play--fresh' : '');
+    if (!ev) return wrap;
+    if (ev.kind === 'pass') {
+      wrap.innerHTML = '<span class="seat-pass">过牌</span>';
+      return wrap;
+    }
+    wrap.innerHTML = '<div class="seat-play-cards">' + cardsRowHtml(ev.cards) + '</div>';
+    return wrap;
+  }
+
+  function fillCenterPlays() {
+    const mySeat = game && game.mySeat != null ? game.mySeat : 0;
+    const freshSeat = latestPlaySeat();
+    const sides = {
+      bottom: mySeat,
+      right: (mySeat + 1) % 4,
+      top: (mySeat + 2) % 4,
+      left: (mySeat + 3) % 4,
+    };
+    Object.keys(sides).forEach((side) => {
+      const el = $('seat-play-' + side);
+      if (!el) return;
+      el.innerHTML = '';
+      const last = lastTableAction(sides[side]);
+      const fresh = !!(last && last.kind === 'play' && sides[side] === freshSeat);
+      const playEl = renderSeatPlay(last, { fresh: fresh });
+      if (playEl && playEl.childNodes.length) {
+        el.appendChild(playEl);
+      }
+    });
+  }
+
   function renderLogItem(ev) {
     const li = document.createElement('li');
     li.className = 'log-item' + (ev.kind === 'system' ? ' system' : '');
+    const timeHtml = ev.at
+      ? '<span class="log-item-time">' +
+        (function (at) {
+          const d = new Date(at);
+          return (
+            String(d.getHours()).padStart(2, '0') +
+            ':' +
+            String(d.getMinutes()).padStart(2, '0') +
+            ':' +
+            String(d.getSeconds()).padStart(2, '0')
+          );
+        })(ev.at) +
+        '</span>'
+      : '';
     if (ev.kind === 'play') {
       li.innerHTML =
         '<div class="log-item-head">' +
-        avatarImg(ev.avatar) +
+        avatarImg(ev.avatar, '', ev.name) +
         '<span class="log-item-name">' +
         ev.name +
         '</span>' +
         '<span class="log-item-tag">' +
         (ev.label || '出牌') +
         '</span>' +
+        timeHtml +
         '</div>' +
         '<div class="log-cards">' +
         cardsRowHtml(ev.cards) +
@@ -587,15 +818,16 @@
     } else if (ev.kind === 'pass') {
       li.innerHTML =
         '<div class="log-item-head">' +
-        avatarImg(ev.avatar) +
+        avatarImg(ev.avatar, '', ev.name) +
         '<span class="log-item-name">' +
         ev.name +
         '</span>' +
         '<span class="log-item-tag">过牌</span>' +
+        timeHtml +
         '</div>';
     } else {
-      const who = ev.avatar
-        ? avatarImg(ev.avatar) +
+      const who = ev.avatar || ev.name
+        ? avatarImg(ev.avatar, '', ev.name) +
           '<span class="log-item-name">' +
           (ev.name || '') +
           '</span>'
@@ -605,7 +837,9 @@
         who +
         '<span class="log-item-text">' +
         ev.text +
-        '</span></div>' +
+        '</span>' +
+        timeHtml +
+        '</div>' +
         (ev.cards && ev.cards.length
           ? '<div class="log-cards">' + cardsRowHtml(ev.cards) + '</div>'
           : '');
@@ -626,13 +860,24 @@
       player.finishedRank !== null && !(player.hand && player.hand.length)
     );
 
+    const thinking =
+      !!opts.thinking && game && game.phase === 'playing' && player.finishedRank == null;
     const info = document.createElement('div');
     info.className = 'seat-info';
-    let meta = (player.handCount != null ? player.handCount : player.hand.length) + '张 · ' + player.score + '点';
+    let meta =
+      (player.handCount != null ? player.handCount : player.hand.length) +
+      '张 · ' +
+      player.score +
+      '点';
     if (player.finishedRank !== null) meta += ' · 第' + player.finishedRank + '名';
     info.innerHTML =
       '<div class="avatar-wrap">' +
-      avatarImg(player.avatar) +
+      '<div class="avatar-box">' +
+      avatarImg(player.avatar, '', player.name) +
+      (thinking
+        ? '<div class="think-bubble" aria-hidden="true"><span></span><span></span><span></span></div>'
+        : '') +
+      '</div>' +
       goodsTagHtml(player.goodsMark) +
       '</div>' +
       '<div><div class="pname">' +
@@ -640,12 +885,22 @@
       (player.isMe ? '（我）' : '') +
       '</div><div class="meta">' +
       meta +
+      '</div><div class="seat-stats">' +
+      '<span class="stat-chip">' +
+      (player.handCount != null ? player.handCount : player.hand ? player.hand.length : 0) +
+      ' 牌</span>' +
+      '<span class="stat-chip pts">' +
+      player.score +
+      ' 分</span>' +
+      (player.finishedRank !== null
+        ? '<span class="stat-chip">第' + player.finishedRank + '</span>'
+        : '') +
       '</div></div>';
-    el.appendChild(info);
 
     const hand = document.createElement('div');
     hand.className = 'hand ' + (opts.vertical ? 'vertical' : 'horizontal');
-    const count = player.handCount != null ? player.handCount : (player.hand ? player.hand.length : 0);
+    const count =
+      player.handCount != null ? player.handCount : player.hand ? player.hand.length : 0;
     const showFace = Array.isArray(player.hand);
     if (showFace) {
       player.hand.forEach((card) => {
@@ -654,10 +909,11 @@
           selectedFlag: !!opts.selectable && !!selected[card.id],
         });
         if (opts.selectable) {
-          node.addEventListener('click', () => {
+          node.addEventListener('click', (e) => {
+            e.preventDefault();
             if (selected[card.id]) delete selected[card.id];
             else selected[card.id] = true;
-            renderGame();
+            updateSelectionUi();
           });
         }
         hand.appendChild(node);
@@ -667,7 +923,13 @@
         hand.appendChild(renderCard(null, { faceDown: true }));
       }
     }
-    el.appendChild(hand);
+    if (opts.infoRight) {
+      el.appendChild(hand);
+      el.appendChild(info);
+    } else {
+      el.appendChild(info);
+      el.appendChild(hand);
+    }
   }
 
   function renderGame() {
@@ -677,6 +939,9 @@
 
     const amHost = room.players.some((p) => p.isMe && p.isHost);
     const myTurn = game.phase === 'playing' && game.mySeat === game.currentPlayer;
+    if ($('turn-banner')) {
+      $('turn-banner').classList.toggle('is-on', myTurn);
+    }
     const d = game.draw;
     const canGive =
       game.phase === 'draw' && d && d.step === 'give' && d.isGainer && !d.myGiveDone;
@@ -686,11 +951,13 @@
       $('btn-next').hidden = !amHost;
       $('btn-play').disabled = true;
       $('btn-pass').disabled = true;
+      if ($('btn-suggest')) $('btn-suggest').disabled = true;
       $('btn-draw-give').hidden = true;
     } else if (game.phase === 'draw') {
       $('btn-next').hidden = true;
       $('btn-play').disabled = true;
       $('btn-pass').disabled = true;
+      if ($('btn-suggest')) $('btn-suggest').disabled = true;
       if (canGive) {
         const targetSeat = d.myPick;
         $('turn-info').textContent =
@@ -716,10 +983,11 @@
       $('btn-next').hidden = true;
       $('btn-play').disabled = !(myTurn && selectedIds().length > 0);
       $('btn-pass').disabled = !(myTurn && game.lastPlay !== null);
+      if ($('btn-suggest')) $('btn-suggest').disabled = !myTurn;
       $('btn-draw-give').hidden = true;
     }
 
-    $('last-play').innerHTML = renderLastPlay(game.lastPlay);
+    fillCenterPlays();
 
     if (game.teamA) {
       if (game.solo) {
@@ -740,22 +1008,28 @@
     }
 
     const mySeat = game.mySeat != null ? game.mySeat : 0;
+    const thinkingSeat = game.phase === 'playing' ? game.currentPlayer : -1;
     fillSeat($('seat-bottom'), game.players[mySeat], {
       showFace: true,
       selectable: myTurn || canGive,
       vertical: false,
+      infoRight: true,
+      thinking: thinkingSeat === mySeat,
     });
     fillSeat($('seat-right'), game.players[(mySeat + 1) % 4], {
       showFace: false,
       vertical: true,
+      thinking: thinkingSeat === (mySeat + 1) % 4,
     });
     fillSeat($('seat-top'), game.players[(mySeat + 2) % 4], {
       showFace: false,
       vertical: false,
+      thinking: thinkingSeat === (mySeat + 2) % 4,
     });
     fillSeat($('seat-left'), game.players[(mySeat + 3) % 4], {
       showFace: false,
       vertical: true,
+      thinking: thinkingSeat === (mySeat + 3) % 4,
     });
 
     if (game.phase === 'playing') {
@@ -796,7 +1070,7 @@
 
   $('btn-clear').addEventListener('click', () => {
     clearSelected();
-    renderGame();
+    updateSelectionUi();
   });
 
   $('btn-draw-give').addEventListener('click', async () => {
@@ -824,6 +1098,28 @@
     }
   });
 
+  if ($('btn-suggest')) {
+    $('btn-suggest').addEventListener('click', () => {
+      if (!game || game.phase !== 'playing' || game.mySeat !== game.currentPlayer) return;
+      const me = game.players[game.mySeat];
+      if (!me || !me.hand) return;
+      const free = game.lastPlay === null;
+      const found = PokerRules.findSmallestLegalPlay(me.hand, free ? null : game.lastPlay, {
+        requireDiamond4: isOpeningLead(game),
+      });
+      clearSelected();
+      if (!found) {
+        $('hint').textContent =
+          game.lastPlay != null ? '没有能压过的牌，可以过牌' : '没有合法出牌';
+        updateSelectionUi();
+        return;
+      }
+      for (let i = 0; i < found.ids.length; i++) selected[found.ids[i]] = true;
+      updateSelectionUi();
+      $('hint').textContent = '提示：' + (found.play.label || '可出') + '（已选中）';
+    });
+  }
+
   $('btn-next').addEventListener('click', async () => {
     const result = await emit('room:next');
     if (!result.ok) {
@@ -832,14 +1128,42 @@
   });
 
   PokerGallery.mount({
+    getToken: function () {
+      return token;
+    },
     onPicked: async function (image) {
+      await api('/api/user/background', {
+        resourceId: image.id || null,
+        file: image.file,
+        name: image.name,
+        url: image.url,
+      });
       if (!socket || !room) return;
-      const result = await emit('room:background', { file: image.file });
+      const result = await emit('room:background', {
+        file: image.file,
+        name: image.name,
+        url: image.url,
+      });
       if (!result.ok && $('hint')) {
         $('hint').textContent = result.error || '修改背景失败';
       }
     },
   });
+
+  if (window.PokerAccount) {
+    PokerAccount.mount({
+      getToken: function () {
+        return token;
+      },
+      onUser: function (u) {
+        try {
+          const t = localStorage.getItem(TOKEN_KEY);
+          if (t) token = t;
+        } catch (e) {}
+        applyUser(u);
+      },
+    });
+  }
 
   // 启动
   (async function boot() {

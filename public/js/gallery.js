@@ -5,6 +5,7 @@
   const STORAGE_KEY = 'poker_bg';
   let images = [];
   let onPicked = null;
+  let getToken = null;
   let overlay = null;
   let grid = null;
 
@@ -58,6 +59,10 @@
 
   function open() {
     if (overlay) overlay.hidden = false;
+    const uploadLabel = overlay && overlay.querySelector('.gallery-upload');
+    if (uploadLabel) {
+      uploadLabel.hidden = !(typeof getToken === 'function' && getToken());
+    }
     loadAndRender();
   }
 
@@ -70,6 +75,8 @@
       return;
     }
     images.forEach((image) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'gallery-item-wrap';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'gallery-item' + (image.file === current ? ' active' : '');
@@ -80,6 +87,7 @@
         image.name +
         '" /><span>' +
         image.name +
+        (image.mine ? ' · 我的' : '') +
         '</span>';
       btn.addEventListener('click', function () {
         if (!confirm('确定将背景图修改为「' + image.name + '」吗？')) return;
@@ -88,7 +96,19 @@
         close();
         if (typeof onPicked === 'function') onPicked(image);
       });
-      grid.appendChild(btn);
+      wrap.appendChild(btn);
+      if (image.mine && image.id) {
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'gallery-del';
+        del.textContent = '删除';
+        del.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          deleteMine(image);
+        });
+        wrap.appendChild(del);
+      }
+      grid.appendChild(wrap);
     });
   }
 
@@ -123,17 +143,24 @@
     renderGrid();
   }
 
+  function authHeaders() {
+    const headers = {};
+    const t = typeof getToken === 'function' ? getToken() : '';
+    if (t) headers.Authorization = 'Bearer ' + t;
+    return headers;
+  }
+
   function loadAndRender() {
-    fetch('/backgrounds/list.json')
+    fetch('/api/backgrounds', { headers: authHeaders() })
       .then(function (res) {
-        if (!res.ok) throw new Error('no list');
+        if (!res.ok) throw new Error('no api');
         return res.json();
       })
       .then(useList)
       .catch(function () {
-        fetch('/api/backgrounds')
+        fetch('/backgrounds/list.json')
           .then(function (res) {
-            if (!res.ok) throw new Error('no api');
+            if (!res.ok) throw new Error('no list');
             return res.json();
           })
           .then(useList)
@@ -144,13 +171,58 @@
       });
   }
 
+  async function deleteMine(image) {
+    if (!confirm('删除「' + image.name + '」？')) return;
+    const res = await fetch('/api/resource/' + image.id, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    const data = await res.json().catch(function () {
+      return { ok: false };
+    });
+    if (!data.ok) {
+      alert(data.error || '删除失败');
+      return;
+    }
+    loadAndRender();
+  }
+
+  async function uploadFile(file) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('图片不能超过 5MB');
+      return;
+    }
+    const form = new FormData();
+    form.append('file', file);
+    form.append('name', file.name.replace(/\.[^.]+$/, ''));
+    const res = await fetch('/api/resource/upload', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: form,
+    });
+    const data = await res.json().catch(function () {
+      return { ok: false, error: '上传失败' };
+    });
+    if (!data.ok) {
+      alert(data.error || '上传失败');
+      return;
+    }
+    loadAndRender();
+  }
+
   function ensureDom() {
-    if (document.getElementById('btn-gallery')) return;
-    const fab = document.createElement('button');
-    fab.type = 'button';
-    fab.id = 'btn-gallery';
-    fab.className = 'gallery-fab';
-    fab.textContent = '图库';
+    if (overlay) return;
+
+    let fab = document.getElementById('btn-gallery');
+    if (!fab) {
+      fab = document.createElement('button');
+      fab.type = 'button';
+      fab.id = 'btn-gallery';
+      fab.className = 'gallery-fab';
+      fab.textContent = '图库';
+      document.body.appendChild(fab);
+    }
     fab.addEventListener('click', open);
 
     overlay = document.createElement('div');
@@ -160,21 +232,29 @@
     overlay.innerHTML =
       '<div class="gallery-panel">' +
       '<div class="gallery-head"><h2>背景图库</h2>' +
-      '<button type="button" class="btn btn-ghost" id="btn-gallery-close">关闭</button></div>' +
+      '<div class="gallery-head-actions">' +
+      '<label class="btn btn-ghost gallery-upload">上传<input id="gallery-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden /></label>' +
+      '<button type="button" class="btn btn-ghost" id="btn-gallery-close">关闭</button>' +
+      '</div></div>' +
       '<div id="gallery-grid" class="gallery-grid"></div></div>';
     overlay.addEventListener('click', function (ev) {
       if (ev.target === overlay) close();
     });
 
-    document.body.appendChild(fab);
     document.body.appendChild(overlay);
     grid = overlay.querySelector('#gallery-grid');
     overlay.querySelector('#btn-gallery-close').addEventListener('click', close);
+    overlay.querySelector('#gallery-file').addEventListener('change', function (ev) {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      uploadFile(file);
+    });
   }
 
   function mount(opts) {
     opts = opts || {};
     onPicked = opts.onPicked || null;
+    getToken = opts.getToken || null;
     ensureDom();
     restore();
   }

@@ -74,6 +74,7 @@
   }
 
   // 图库文件名：花色 diamonds/clubs/hearts/spades，点数 2-10 / jack / queen / king / ace
+  // J/Q/K 用人像 PNG（图库 *2 变体），其余点数继续用 SVG
   const SUIT_FILE = ['diamonds', 'clubs', 'hearts', 'spades'];
   const RANK_FILE = [
     '4',
@@ -90,11 +91,12 @@
     '2',
     '3',
   ];
+  const FACE_PNG_RANKS = { jack: true, queen: true, king: true };
 
   function cardImageUrl(card) {
-    return (
-      '/cards/' + RANK_FILE[card.rank] + '_of_' + SUIT_FILE[card.suit] + '.svg'
-    );
+    const rankName = RANK_FILE[card.rank];
+    const ext = FACE_PNG_RANKS[rankName] ? '.png' : '.svg';
+    return '/cards/' + rankName + '_of_' + SUIT_FILE[card.suit] + ext;
   }
 
   function cardFaceHtml(card) {

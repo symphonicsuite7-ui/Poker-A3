@@ -1,0 +1,11 @@
+node_modules/
+server/data/users.json
+server/data/uploads/
+.DS_Store
+.cursor/
+base/Poker-A3-base/data/
+base/Poker-A3-base/target/
+图库/
+# 含本地密钥时勿提交
+**/application-local.yaml
+**/application-secret.yaml

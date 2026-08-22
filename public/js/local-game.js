@@ -108,6 +108,8 @@ function pushEvent(state, ev) {
     text: ev.text,
     label: ev.label || '',
     cards: cloneCards(ev.cards),
+    // 仅用于冒险日志展示，不影响玩法
+    at: Date.now(),
   });
 }
 
@@ -429,9 +431,10 @@ function advanceDrawReveal(state) {
   return { ok: false, reason: '当前不能进入下一步', state: state };
 }
 
+/** 顺时针下家：座位号递减（跳过已出完的玩家）。 */
 function nextActiveAfter(state, fromId) {
   for (let i = 1; i <= 4; i++) {
-    const id = (fromId + i) % 4;
+    const id = (fromId - i + 4) % 4;
     if (state.players[id].finishedRank === null) return id;
   }
   return fromId;
@@ -495,10 +498,10 @@ function scoreLockReason(state) {
   return null;
 }
 
-/** 给尚未出完的玩家按座位顺序补名次，并亮出剩余手牌 */
+/** 给尚未出完的玩家按顺时针座位顺序补名次，并亮出剩余手牌 */
 function assignRemainingRanks(state) {
   for (let i = 1; i <= 4; i++) {
-    const p = state.players[(state.currentPlayer + i) % 4];
+    const p = state.players[(state.currentPlayer - i + 4) % 4];
     if (p.finishedRank !== null) continue;
     state.finishedOrder.push(p.id);
     p.finishedRank = state.finishedOrder.length;
@@ -600,6 +603,16 @@ function settle(state) {
   });
 }
 
+/** 本局第一次出牌才必须带方片4；全过后再出不算初出。 */
+function isOpeningLead(state) {
+  if (!state || state.lastPlay != null) return false;
+  const events = state.events || [];
+  for (let i = 0; i < events.length; i++) {
+    if (events[i].kind === 'play') return false;
+  }
+  return true;
+}
+
 function playCards(state, seatIndex, cardIds) {
   if (state.phase !== 'playing') {
     return { ok: false, reason: state.phase === 'draw' ? '抽牌尚未结束' : '本局已结束', state };
@@ -621,6 +634,9 @@ function playCards(state, seatIndex, cardIds) {
   const free = state.lastPlay === null;
   const check = Rules.validatePlay(selected, free ? null : state.lastPlay);
   if (!check.ok) return { ok: false, reason: check.reason, state };
+  if (isOpeningLead(state) && !selected.some(Cards.isDiamond4)) {
+    return { ok: false, reason: '首出必须包含方片4', state };
+  }
 
   const play = check.play;
   const next = cloneState(state);

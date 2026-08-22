@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: a3-game
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+  datasource:
+    # 密码请用环境变量 A3_DB_PASSWORD，勿把真实密码写入仓库
+    url: jdbc:mysql://${A3_DB_HOST:47.104.243.13}:3306/a3_game?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${A3_DB_USER:a3_game}
+    password: ${A3_DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 8000
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+a3:
+  jwt:
+    secret: ${A3_JWT_SECRET:a3-game-jwt-hs256-secret-change-me-32b+}
+    expire-hours: 168
+  upload-dir: data/uploads
+  web-root: ../../public
+
+# 原生 WebSocket：ws://host:8080/ws?token=
+
+# Redis 仍未启用，房间继续走内存
+# spring.data.redis:
+#   host: 127.0.0.1
+#   port: 6379
