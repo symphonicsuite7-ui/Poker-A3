@@ -1,5 +1,5 @@
 /**
- * 四人扑克服务端入口（可部署到云服务器）
+ * 天子牌局：葵影服务端入口（可部署到云服务器）
  */
 const path = require('path');
 const http = require('http');
@@ -25,6 +25,15 @@ const io = new Server(server, {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+  fileFilter(_req, file, cb) {
+    if (avatars.ALLOWED_MIME[file.mimetype]) cb(null, true);
+    else cb(new Error('仅支持 JPG / PNG / GIF / WEBP 图片'));
+  },
+});
+
+const resourceUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
   fileFilter(_req, file, cb) {
     if (avatars.ALLOWED_MIME[file.mimetype]) cb(null, true);
     else cb(new Error('仅支持 JPG / PNG / GIF / WEBP 图片'));
@@ -63,8 +72,41 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, status: 'up' });
 });
 
-app.get('/api/backgrounds', (_req, res) => {
-  res.json({ ok: true, images: backgrounds.listBackgrounds() });
+app.get('/api/backgrounds', (req, res) => {
+  const session = auth.authFromHeader(req);
+  res.json({ ok: true, images: backgrounds.listForUser(session && session.userId) });
+});
+
+app.post('/api/resource/upload', requireAuth, (req, res) => {
+  resourceUpload.single('file')(req, res, (err) => {
+    if (err) return res.status(400).json({ ok: false, error: err.code === 'LIMIT_FILE_SIZE' ? '图片不能超过 5MB' : err.message });
+    const name = String(req.body.name || '').trim();
+    if (!name) return res.status(400).json({ ok: false, error: '请输入图片名称' });
+    if (!req.file) return res.status(400).json({ ok: false, error: '请选择图片' });
+    const ext = avatars.ALLOWED_MIME[req.file.mimetype];
+    res.json({ ok: true, image: backgrounds.addResource(req.user.userId, name, req.file, ext) });
+  });
+});
+
+app.delete('/api/resource/:id', requireAuth, (req, res) => {
+  if (!backgrounds.removeResource(req.params.id, req.user.userId)) {
+    return res.status(404).json({ ok: false, error: '图片不存在或无权删除' });
+  }
+  res.json({ ok: true });
+});
+
+app.post('/api/user/avatar', requireAuth, (req, res) => {
+  const image = backgrounds.findResource(req.body.resourceId);
+  if (!image) return res.status(404).json({ ok: false, error: '图片不存在' });
+  const user = auth.updateUser(req.user.userId, { avatar: image.url });
+  res.json({ ok: true, user });
+});
+
+app.post('/api/user/background', requireAuth, (req, res) => {
+  const image = req.body.resourceId ? backgrounds.findResource(req.body.resourceId) : backgrounds.findByFile(req.body.file);
+  if (!image) return res.status(404).json({ ok: false, error: '图片不存在' });
+  auth.updateUser(req.user.userId, { background: { id: image.id || null, name: image.name, file: image.file, url: image.url } });
+  res.json({ ok: true });
 });
 
 app.post('/api/register', (req, res) => {
@@ -100,6 +142,7 @@ app.get('/api/me', requireAuth, (req, res) => {
       id: req.user.userId,
       username: req.user.username,
       avatar: avatars.normalizeAvatar(req.user.avatar),
+      background: (auth.findUserById(req.user.userId) || {}).background || null,
     },
   });
 });
@@ -262,5 +305,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log('四人扑克服务已启动: http://' + HOST + ':' + PORT);
+  console.log('天子牌局：葵影服务已启动: http://' + HOST + ':' + PORT);
 });

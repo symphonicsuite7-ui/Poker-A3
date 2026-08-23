@@ -80,22 +80,20 @@
 
 .auth-mark {
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  font-size: 1.15rem;
-  letter-spacing: 0.08em;
-  opacity: 0.9;
-}
-
-.auth-mark span:nth-child(1),
-.auth-mark span:nth-child(3) {
-  color: #d8d2c6;
-}
-
-.auth-mark span:nth-child(2),
-.auth-mark span:nth-child(4) {
-  color: #e8b84a;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 14px;
+  border: 2px solid rgba(232, 184, 74, 0.72);
+  border-radius: 50%;
+  background: #f7f1e4;
+  color: #050505;
+  font-size: 4rem;
+  line-height: 0.9;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18),
+    0 5px 16px rgba(0, 0, 0, 0.65);
 }
 
 .auth-card h1 {
@@ -641,8 +639,10 @@
   }
 
   .auth-mark {
-    margin-bottom: 8px;
-    font-size: 1rem;
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 8px;
+    font-size: 2.8rem;
   }
 
   .auth-brand {

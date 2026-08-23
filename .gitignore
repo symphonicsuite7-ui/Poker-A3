@@ -1,4 +1,5 @@
 node_modules/
+.npm-cache/
 server/data/users.json
 server/data/uploads/
 .DS_Store

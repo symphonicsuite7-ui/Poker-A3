@@ -8,6 +8,8 @@
   let getToken = null;
   let overlay = null;
   let grid = null;
+  let actionDialog = null;
+  let uploadDialog = null;
 
   function applyBackground(url) {
     const els = [document.documentElement, document.body];
@@ -59,10 +61,6 @@
 
   function open() {
     if (overlay) overlay.hidden = false;
-    const uploadLabel = overlay && overlay.querySelector('.gallery-upload');
-    if (uploadLabel) {
-      uploadLabel.hidden = !(typeof getToken === 'function' && getToken());
-    }
     loadAndRender();
   }
 
@@ -80,34 +78,17 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'gallery-item' + (image.file === current ? ' active' : '');
-      btn.innerHTML =
-        '<img src="' +
-        image.url +
-        '" alt="' +
-        image.name +
-        '" /><span>' +
-        image.name +
-        (image.mine ? ' · 我的' : '') +
-        '</span>';
+      const img = document.createElement('img');
+      img.src = image.url;
+      img.alt = image.name;
+      const label = document.createElement('span');
+      label.textContent = image.name + (image.mine ? ' · 我的' : '');
+      btn.appendChild(img);
+      btn.appendChild(label);
       btn.addEventListener('click', function () {
-        if (!confirm('确定将背景图修改为「' + image.name + '」吗？')) return;
-        applyBackground(image.url);
-        saveLocal(image);
-        close();
-        if (typeof onPicked === 'function') onPicked(image);
+        openActions(image);
       });
       wrap.appendChild(btn);
-      if (image.mine && image.id) {
-        const del = document.createElement('button');
-        del.type = 'button';
-        del.className = 'gallery-del';
-        del.textContent = '删除';
-        del.addEventListener('click', function (ev) {
-          ev.stopPropagation();
-          deleteMine(image);
-        });
-        wrap.appendChild(del);
-      }
       grid.appendChild(wrap);
     });
   }
@@ -184,10 +165,15 @@
       alert(data.error || '删除失败');
       return;
     }
+    actionDialog.hidden = true;
+    if (currentFile() === image.file) {
+      localStorage.removeItem(STORAGE_KEY);
+      applyBackground('');
+    }
     loadAndRender();
   }
 
-  async function uploadFile(file) {
+  async function uploadFile(file, name) {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
       alert('图片不能超过 5MB');
@@ -195,7 +181,7 @@
     }
     const form = new FormData();
     form.append('file', file);
-    form.append('name', file.name.replace(/\.[^.]+$/, ''));
+    form.append('name', name);
     const res = await fetch('/api/resource/upload', {
       method: 'POST',
       headers: authHeaders(),
@@ -208,7 +194,41 @@
       alert(data.error || '上传失败');
       return;
     }
+    uploadDialog.hidden = true;
     loadAndRender();
+  }
+
+  function openActions(image) {
+    actionDialog.hidden = false;
+    actionDialog.querySelector('.gallery-action-preview').src = image.url;
+    actionDialog.querySelector('.gallery-action-title').textContent = image.name;
+    const del = actionDialog.querySelector('#btn-gallery-delete');
+    del.hidden = !(image.mine && image.id);
+    actionDialog.querySelector('#btn-gallery-wallpaper').onclick = async function () {
+      applyBackground(image.url);
+      saveLocal(image);
+      if (typeof onPicked === 'function') await onPicked(image);
+      actionDialog.hidden = true;
+      close();
+      renderGrid();
+    };
+    actionDialog.querySelector('#btn-gallery-avatar').onclick = async function () {
+      if (!image.id) {
+        alert('请先将图片添加到“我的图片”，再设为头像');
+        return;
+      }
+      const res = await fetch('/api/user/avatar', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({ resourceId: image.id }),
+      });
+      const data = await res.json().catch(function () { return { ok: false }; });
+      if (!data.ok) return alert(data.error || '设置头像失败');
+      actionDialog.hidden = true;
+      window.dispatchEvent(new CustomEvent('poker:avatar-changed', { detail: data.user }));
+      alert('头像已更新');
+    };
+    del.onclick = function () { deleteMine(image); };
   }
 
   function ensureDom() {
@@ -233,7 +253,7 @@
       '<div class="gallery-panel">' +
       '<div class="gallery-head"><h2>背景图库</h2>' +
       '<div class="gallery-head-actions">' +
-      '<label class="btn btn-ghost gallery-upload">上传<input id="gallery-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden /></label>' +
+      '<button type="button" class="btn btn-primary gallery-upload" id="btn-gallery-add">添加图片</button>' +
       '<button type="button" class="btn btn-ghost" id="btn-gallery-close">关闭</button>' +
       '</div></div>' +
       '<div id="gallery-grid" class="gallery-grid"></div></div>';
@@ -244,11 +264,44 @@
     document.body.appendChild(overlay);
     grid = overlay.querySelector('#gallery-grid');
     overlay.querySelector('#btn-gallery-close').addEventListener('click', close);
-    overlay.querySelector('#gallery-file').addEventListener('change', function (ev) {
-      const file = ev.target.files && ev.target.files[0];
-      ev.target.value = '';
-      uploadFile(file);
+    overlay.querySelector('#btn-gallery-add').addEventListener('click', function () {
+      if (!(typeof getToken === 'function' && getToken())) {
+        alert('请先登录后再添加图片');
+        return;
+      }
+      uploadDialog.hidden = false;
+      uploadDialog.querySelector('#gallery-name').value = '';
+      uploadDialog.querySelector('#gallery-file').value = '';
     });
+
+    actionDialog = document.createElement('div');
+    actionDialog.className = 'gallery-overlay gallery-dialog';
+    actionDialog.hidden = true;
+    actionDialog.innerHTML = '<div class="gallery-dialog-panel"><img class="gallery-action-preview" alt="" />' +
+      '<h3 class="gallery-action-title"></h3><div class="gallery-dialog-actions">' +
+      '<button class="btn btn-primary" id="btn-gallery-wallpaper">设为壁纸</button>' +
+      '<button class="btn" id="btn-gallery-avatar">设为头像</button>' +
+      '<button class="btn btn-danger" id="btn-gallery-delete">删除</button>' +
+      '<button class="btn btn-ghost" data-close>取消</button></div></div>';
+    document.body.appendChild(actionDialog);
+    actionDialog.querySelector('[data-close]').onclick = function () { actionDialog.hidden = true; };
+
+    uploadDialog = document.createElement('div');
+    uploadDialog.className = 'gallery-overlay gallery-dialog';
+    uploadDialog.hidden = true;
+    uploadDialog.innerHTML = '<form class="gallery-dialog-panel" id="gallery-upload-form"><h3>添加图片</h3>' +
+      '<label class="gallery-field">图片名称<input id="gallery-name" maxlength="30" required placeholder="请输入图片名称" /></label>' +
+      '<label class="gallery-field">选择图片<input id="gallery-file" type="file" required accept="image/jpeg,image/png,image/gif,image/webp" /></label>' +
+      '<div class="gallery-dialog-actions"><button class="btn btn-primary" type="submit">上传</button>' +
+      '<button class="btn btn-ghost" type="button" data-close>取消</button></div></form>';
+    document.body.appendChild(uploadDialog);
+    uploadDialog.querySelector('[data-close]').onclick = function () { uploadDialog.hidden = true; };
+    uploadDialog.querySelector('form').onsubmit = function (ev) {
+      ev.preventDefault();
+      const name = uploadDialog.querySelector('#gallery-name').value.trim();
+      const file = uploadDialog.querySelector('#gallery-file').files[0];
+      if (name && file) uploadFile(file, name);
+    };
   }
 
   function mount(opts) {

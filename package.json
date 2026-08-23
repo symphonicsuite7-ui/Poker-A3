@@ -1,7 +1,7 @@
 {
   "name": "poker-room",
   "version": "1.0.0",
-  "description": "四人扑克：登录、房间、联网对局",
+  "description": "天子牌局：葵影 - 登录、房间、联网对局",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

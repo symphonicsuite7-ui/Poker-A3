@@ -69,6 +69,18 @@ function findUserById(id) {
   return data.users.find((u) => u.id === id) || null;
 }
 
+function updateUser(userId, changes) {
+  const data = loadUsers();
+  const user = data.users.find((u) => u.id === userId);
+  if (!user) return null;
+  Object.assign(user, changes);
+  saveUsers(data);
+  for (const session of sessions.values()) {
+    if (session.userId === userId && changes.avatar) session.avatar = changes.avatar;
+  }
+  return publicUser(user);
+}
+
 /**
  * @param {string} username
  * @param {string} password
@@ -146,4 +158,5 @@ module.exports = {
   createSession,
   findUserById,
   publicUser,
+  updateUser,
 };

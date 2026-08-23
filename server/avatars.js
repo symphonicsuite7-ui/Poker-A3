@@ -33,7 +33,7 @@ function isPreset(avatar) {
 }
 
 function isUploaded(avatar) {
-  return /^\/uploads\/avatars\/[a-zA-Z0-9-]+\.(jpg|jpeg|png|gif|webp)$/i.test(
+  return /^\/uploads\/(avatars|resources)\/[a-zA-Z0-9-]+\.(jpg|jpeg|png|gif|webp)$/i.test(
     avatar || ''
   );
 }
@@ -99,4 +99,5 @@ module.exports = {
   normalizeAvatar,
   saveUploadedAvatar,
   isPreset,
+  isUploaded,
 };

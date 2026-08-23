@@ -441,13 +441,14 @@ body {
 
 .seat-left .hand.vertical,
 .seat-right .hand.vertical {
-  padding: 12px 10px;
+  padding: 8px 8px;
   border-radius: 14px;
   background: var(--panel-soft);
   border: 1px solid var(--line);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(8px);
   max-height: min(360px, 48vh);
+  overflow: hidden;
 }
 
 .table-bottom {
@@ -488,17 +489,17 @@ body {
   justify-content: center;
   align-items: flex-end;
   max-width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
   padding: 12px 8px 4px;
 }
 
 .seat-top .hand.horizontal {
-  padding: 10px 14px 8px;
+  padding: 8px 18px 6px;
   align-items: center;
 }
 
 .hand.horizontal .card {
-  margin-left: -14px;
+  margin-left: -18px;
   flex-shrink: 0;
 }
 
@@ -537,11 +538,15 @@ body {
 }
 
 .seat-top .hand.horizontal .card {
-  margin-left: -18px;
+  margin-left: -24px;
 }
 
 .seat-bottom .hand.horizontal .card {
   margin-left: -8px;
+}
+
+.seat-bottom .hand.horizontal {
+  padding-top: 18px;
 }
 
 .seat-bottom .hand.horizontal .card:first-child {
@@ -641,7 +646,8 @@ body {
   align-items: flex-end;
   justify-content: center;
   max-width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
+  padding: 2px 24px;
 }
 
 /* 旧出牌略小，最新一手略大，对比清晰即可 */
@@ -726,7 +732,7 @@ body {
   flex-wrap: nowrap;
   gap: 8px;
   max-width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
   padding: 4px 2px 8px;
 }
 
@@ -1466,6 +1472,8 @@ body {
 }
 
 body.has-bg-image {
+  /* 页面背景图遮罩透明度：0 最清晰，1 最暗。 */
+  --background-image-overlay-opacity: 0.35;
   background-color: #0a121c;
   background-size: cover;
   background-position: center center;
@@ -1479,6 +1487,7 @@ body.has-bg-image::before {
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  opacity: var(--background-image-overlay-opacity);
   background:
     radial-gradient(ellipse at 50% 30%, rgba(8, 12, 20, 0.12) 0%, transparent 55%),
     linear-gradient(180deg, rgba(4, 8, 14, 0.18) 0%, rgba(4, 8, 14, 0.32) 100%);
@@ -1591,4 +1600,77 @@ body.has-bg-image .app {
 .gallery-empty {
   margin: 8px 0;
   color: #d9d0c0;
+}
+
+/* 过牌只更新状态，不应让上一手牌重新播放落牌动画。 */
+.seat-play--stable,
+.seat-play--stable.seat-play--fresh {
+  animation: none !important;
+  transform: none !important;
+}
+
+.gallery-item-wrap {
+  min-width: 0;
+}
+
+.gallery-dialog {
+  z-index: 90;
+}
+
+.gallery-dialog-panel {
+  width: min(420px, 100%);
+  padding: 18px;
+  background: #163326;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: #f3efe6;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+
+.gallery-dialog-panel h3 {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+}
+
+.gallery-action-preview {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+}
+
+.gallery-action-title {
+  margin-top: 12px !important;
+  overflow-wrap: anywhere;
+}
+
+.gallery-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  color: #d9d0c0;
+}
+
+.gallery-field input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font: inherit;
+}
+
+.gallery-dialog-actions,
+.gallery-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn-danger {
+  background: #8f3030;
+  border-color: #bd5656;
 }

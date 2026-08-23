@@ -23,6 +23,7 @@
   let authMode = 'login';
   let customAvatarFile = null;
   let lastEventCount = 0;
+  let lastAnimatedPlayKey = '';
 
   const $ = (id) => document.getElementById(id);
 
@@ -742,8 +743,12 @@
   /** 全场最近一次「出牌」的座位；过牌不影响，上一手保持大牌 */
   function latestPlaySeat() {
     const events = (game && game.events) || [];
+    // 过牌会触发整桌重绘，但不应让上一手牌再次播放“落牌”动画。
+    // 只要最新一条行动事件是过牌，本次渲染就不标记 fresh。
     for (let i = events.length - 1; i >= 0; i--) {
-      if (events[i].kind === 'play') return events[i].seat;
+      if (events[i].kind === 'play' || events[i].kind === 'pass') {
+        return events[i].kind === 'play' ? events[i].seat : null;
+      }
     }
     return null;
   }
@@ -751,7 +756,10 @@
   function renderSeatPlay(ev, opts) {
     opts = opts || {};
     const wrap = document.createElement('div');
-    wrap.className = 'seat-play' + (opts.fresh ? ' seat-play--fresh' : '');
+    wrap.className =
+      'seat-play' +
+      (opts.fresh ? ' seat-play--fresh' : '') +
+      (opts.stable ? ' seat-play--stable' : '');
     if (!ev) return wrap;
     if (ev.kind === 'pass') {
       wrap.innerHTML = '<span class="seat-pass">过牌</span>';
@@ -764,6 +772,23 @@
   function fillCenterPlays() {
     const mySeat = game && game.mySeat != null ? game.mySeat : 0;
     const freshSeat = latestPlaySeat();
+    let latestActionKind = '';
+    const allEvents = (game && game.events) || [];
+    for (let i = allEvents.length - 1; i >= 0; i--) {
+      if (allEvents[i].kind === 'play' || allEvents[i].kind === 'pass') {
+        latestActionKind = allEvents[i].kind;
+        break;
+      }
+    }
+    let latestPlayKey = '';
+    const events = (game && game.events) || [];
+    for (let i = events.length - 1; i >= 0; i--) {
+      if (events[i].kind === 'play') {
+        const cards = (events[i].cards || []).map((card) => card.id).join(',');
+        latestPlayKey = String(i) + ':' + String(events[i].seat) + ':' + cards;
+        break;
+      }
+    }
     const sides = {
       bottom: mySeat,
       right: (mySeat + 1) % 4,
@@ -775,12 +800,22 @@
       if (!el) return;
       el.innerHTML = '';
       const last = lastTableAction(sides[side]);
-      const fresh = !!(last && last.kind === 'play' && sides[side] === freshSeat);
-      const playEl = renderSeatPlay(last, { fresh: fresh });
+      const fresh = !!(
+        last &&
+        last.kind === 'play' &&
+        sides[side] === freshSeat &&
+        latestPlayKey &&
+        latestPlayKey !== lastAnimatedPlayKey
+      );
+      const playEl = renderSeatPlay(last, {
+        fresh: fresh,
+        stable: latestActionKind === 'pass',
+      });
       if (playEl && playEl.childNodes.length) {
         el.appendChild(playEl);
       }
     });
+    if (latestPlayKey) lastAnimatedPlayKey = latestPlayKey;
   }
 
   function renderLogItem(ev) {
@@ -1148,6 +1183,10 @@
         $('hint').textContent = result.error || '修改背景失败';
       }
     },
+  });
+
+  window.addEventListener('poker:avatar-changed', function (ev) {
+    if (ev.detail) applyUser(ev.detail);
   });
 
   if (window.PokerAccount) {

@@ -5,7 +5,7 @@
 module.exports = {
   apps: [
     {
-      name: 'poker',
+      name: 'tianzi-poker',
       script: 'server/index.js',
       instances: 1,
       exec_mode: 'fork',

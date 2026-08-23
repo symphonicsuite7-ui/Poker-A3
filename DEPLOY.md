@@ -1,4 +1,4 @@
-# 四人扑克 · 阿里云部署说明
+# 天子牌局：葵影 · 阿里云部署说明
 
 本项目是 Node.js 单进程应用（房间和对局存在内存里），适合部署到阿里云 ECS。不要用 PM2 cluster 多进程，否则房间对不上。
 
@@ -116,8 +116,8 @@ sudo certbot --nginx -d your-domain.com
 
 ```bash
 pm2 status
-pm2 logs poker
-pm2 restart poker
+pm2 logs tianzi-poker
+pm2 restart tianzi-poker
 ```
 
 健康检查：`http://你的公网IP/health` 应返回 `{"ok":true,"status":"up"}`
