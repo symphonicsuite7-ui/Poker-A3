@@ -1079,5 +1079,13 @@
     },
   });
 
-  render();
+  const savedBackground = PokerGallery.currentImage ? PokerGallery.currentImage() : null;
+  const initialAssets = AVATARS.concat(savedBackground && savedBackground.url ? [savedBackground.url] : []);
+  PokerPreloader.prepare(initialAssets).then((result) => {
+    render();
+    PokerPreloader.hide();
+    if (result.failed) {
+      $('hint').textContent = result.failed + ' 个图片加载失败，牌局仍可继续';
+    }
+  });
 })();

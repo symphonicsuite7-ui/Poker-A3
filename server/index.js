@@ -72,6 +72,13 @@ app.use(
     maxAge: '7d',
   })
 );
+app.use(
+  '/cards',
+  express.static(path.join(__dirname, '..', 'public', 'cards'), {
+    maxAge: '365d',
+    immutable: true,
+  })
+);
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 function requireAuth(req, res, next) {

@@ -389,5 +389,6 @@
     applyBackground: applyBackground,
     restore: restore,
     saveLocal: saveLocal,
+    currentImage: savedImage,
   };
 })(window);

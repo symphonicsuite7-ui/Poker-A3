@@ -26,6 +26,7 @@
   let lastAnimatedPlayKey = '';
   /** 吞噬还牌：已点「还牌」、等待点选对象 */
   let pendingGivePick = false;
+  let gameEntryVersion = 0;
 
   const $ = (id) => document.getElementById(id);
 
@@ -364,29 +365,40 @@
       setError($('auth-error'), '登录已失效，请重新登录');
     });
 
-    sock.on('room:update', (payload) => {
+    sock.on('room:update', async (payload) => {
+      const entryVersion = ++gameEntryVersion;
       const prevPhase = game && game.phase;
       const prevStep = game && game.draw && game.draw.step;
       room = payload.room;
       game = payload.game;
       if (!room) {
+        PokerPreloader.hide();
         PokerGallery.restore();
         showScreen('lobby');
         return;
       }
       applyRoomBackground();
       if (room.status === 'waiting') {
+        PokerPreloader.hide();
         const overlay = $('draw-overlay');
         if (overlay) overlay.hidden = true;
         renderRoom();
         showScreen('room');
       } else {
+        const assetUrls = room.players.map((p) => p.avatar).filter(Boolean);
+        if (room.background && room.background.url) assetUrls.push(room.background.url);
+        const preload = await PokerPreloader.prepare(assetUrls);
+        if (entryVersion !== gameEntryVersion || !room || room.status === 'waiting') return;
         const step = game && game.draw && game.draw.step;
         if (prevPhase !== (game && game.phase) || prevStep !== step) {
           clearSelected();
         }
         renderGame();
         showScreen('game');
+        PokerPreloader.hide();
+        if (preload.failed && $('hint')) {
+          $('hint').textContent = preload.failed + ' 个图片加载失败，牌局仍可继续';
+        }
       }
     });
   }
@@ -678,8 +690,12 @@
 
   $('btn-start').addEventListener('click', async () => {
     setError($('room-error'), '');
+    PokerPreloader.show();
     const result = await emit('room:start');
-    if (!result.ok) setError($('room-error'), result.error || '无法开始');
+    if (!result.ok) {
+      PokerPreloader.hide();
+      setError($('room-error'), result.error || '无法开始');
+    }
   });
 
   async function leaveRoom() {
