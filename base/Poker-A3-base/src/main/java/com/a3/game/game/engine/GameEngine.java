@@ -195,9 +195,28 @@ public class GameEngine {
 		return g;
 	}
 
+	public EngineResult devourDraw(GameState state, int seat) {
+		if (state.getPhase() != GamePhase.DRAW || state.getDraw() == null
+				|| !"devour".equals(state.getDraw().getStep()) || !state.getDraw().isDevour()) {
+			return EngineResult.fail("现在不能吞噬", state);
+		}
+		DrawParty g = state.getDraw().getGainers().stream().filter(x -> x.getSeat() == seat).findFirst().orElse(null);
+		if (g == null) {
+			return EngineResult.fail("你不是加分者", state);
+		}
+		GameState next = state.copy();
+		GameEvents.push(next, "system", seat, nameOf(next, seat),
+				nameOf(next, seat) + " 吞噬 " + g.getAmount() + " 张牌", "", null);
+		applyDevourTakes(next);
+		return EngineResult.ok(next);
+	}
+
 	public EngineResult pickDrawTarget(GameState state, int seat, int targetSeat) {
 		if (state.getPhase() != GamePhase.DRAW || state.getDraw() == null || !"pick".equals(state.getDraw().getStep())) {
 			return EngineResult.fail("现在不能选择抽牌对象", state);
+		}
+		if (state.getDraw().isDevour()) {
+			return EngineResult.fail("吞噬模式请点击吞噬", state);
 		}
 		DrawParty g = state.getDraw().getGainers().stream().filter(x -> x.getSeat() == seat).findFirst().orElse(null);
 		if (g == null) {
@@ -224,7 +243,7 @@ public class GameEngine {
 		return EngineResult.ok(next);
 	}
 
-	public EngineResult giveDrawCards(GameState state, int seat, List<String> cardIds) {
+	public EngineResult giveDrawCards(GameState state, int seat, List<String> cardIds, Integer targetSeat) {
 		if (state.getPhase() != GamePhase.DRAW || state.getDraw() == null || !"give".equals(state.getDraw().getStep())) {
 			return EngineResult.fail("现在不能还牌", state);
 		}
@@ -232,13 +251,7 @@ public class GameEngine {
 		if (g == null) {
 			return EngineResult.fail("你不是加分者", state);
 		}
-		if (state.getDraw().giveOf(seat) != null) {
-			return EngineResult.fail("你已经还过牌", state);
-		}
 		List<String> ids = cardIds == null ? List.of() : cardIds;
-		if (ids.size() != g.getAmount()) {
-			return EngineResult.fail("请选择 " + g.getAmount() + " 张还牌", state);
-		}
 		if (new HashSet<>(ids).size() != ids.size()) {
 			return EngineResult.fail("不能重复选同一张牌", state);
 		}
@@ -247,6 +260,30 @@ public class GameEngine {
 			if (p.getHand().stream().noneMatch(c -> c.getId().equals(id))) {
 				return EngineResult.fail("选中的牌不在手牌中", state);
 			}
+		}
+
+		if (state.getDraw().isDevour()) {
+			if (targetSeat == null) {
+				return EngineResult.fail("请选择还牌对象", state);
+			}
+			List<DrawParty> rem = state.getDraw().remainingGiveLosers(seat);
+			DrawParty loser = rem.stream().filter(x -> x.getSeat() == targetSeat).findFirst().orElse(null);
+			if (loser == null) {
+				return EngineResult.fail("只能还给尚未还过的减分者", state);
+			}
+			if (ids.size() != loser.getAmount()) {
+				return EngineResult.fail("请选择 " + loser.getAmount() + " 张还牌", state);
+			}
+			GameState next = state.copy();
+			applyOneDevourGive(next, seat, ids, targetSeat);
+			return EngineResult.ok(next);
+		}
+
+		if (state.getDraw().giveOf(seat) != null) {
+			return EngineResult.fail("你已经还过牌", state);
+		}
+		if (ids.size() != g.getAmount()) {
+			return EngineResult.fail("请选择 " + g.getAmount() + " 张还牌", state);
 		}
 		GameState next = state.copy();
 		next.getDraw().getGives().put(String.valueOf(seat), new ArrayList<>(ids));
@@ -257,6 +294,11 @@ public class GameEngine {
 		return EngineResult.ok(next);
 	}
 
+	/** 兼容旧签名：无目标座位 */
+	public EngineResult giveDrawCards(GameState state, int seat, List<String> cardIds) {
+		return giveDrawCards(state, seat, cardIds, null);
+	}
+
 	public EngineResult advanceDrawReveal(GameState state) {
 		if (state.getPhase() != GamePhase.DRAW || state.getDraw() == null) {
 			return EngineResult.fail("当前不是抽牌阶段", state);
@@ -265,7 +307,10 @@ public class GameEngine {
 		if ("showTake".equals(next.getDraw().getStep())) {
 			next.getDraw().setStep("give");
 			next.getDraw().setRevealUntil(null);
-			GameEvents.push(next, "system", null, "", "请加分者从手牌中选出还牌", "", null);
+			String tip = next.getDraw().isDevour()
+					? "请选出还牌，再选择对象归还（按失分张数分批）"
+					: "请加分者从手牌中选出还牌";
+			GameEvents.push(next, "system", null, "", tip, "", null);
 			return EngineResult.ok(next);
 		}
 		if ("showGive".equals(next.getDraw().getStep())) {
@@ -298,9 +343,12 @@ public class GameEngine {
 			state.setDraw(null);
 			return false;
 		}
+		int loserSum = losers.stream().mapToInt(DrawParty::getAmount).sum();
+		boolean devour = gainers.size() == 1 && losers.size() >= 2 && gainers.get(0).getAmount() == loserSum;
 		state.setPhase(GamePhase.DRAW);
 		DrawState draw = new DrawState();
-		draw.setStep("pick");
+		draw.setStep(devour ? "devour" : "pick");
+		draw.setMode(devour ? "devour" : "normal");
 		draw.setUniqueTargets(gainers.size() <= losers.size());
 		draw.getGainers().addAll(gainers);
 		draw.getLosers().addAll(losers);
@@ -321,6 +369,30 @@ public class GameEngine {
 			gainer.setHand(Cards.sortCards(merged));
 			DrawTransfer t = new DrawTransfer();
 			t.setFrom(from);
+			t.setTo(g.getSeat());
+			t.setCards(result.taken);
+			draw.getTakes().add(t);
+			GameEvents.push(state, "system", g.getSeat(), gainer.getName(),
+					gainer.getName() + " 从 " + target.getName() + " 抽了 " + result.taken.size() + " 张",
+					"", result.taken);
+		}
+		draw.setStep("showTake");
+		draw.setRevealUntil(System.currentTimeMillis() + DRAW_REVEAL_MS);
+	}
+
+	private void applyDevourTakes(GameState state) {
+		DrawState draw = state.getDraw();
+		DrawParty g = draw.getGainers().get(0);
+		GamePlayer gainer = state.getPlayers().get(g.getSeat());
+		for (DrawParty loser : draw.getLosers()) {
+			GamePlayer target = state.getPlayers().get(loser.getSeat());
+			TakeResult result = randomTake(target.getHand(), loser.getAmount());
+			target.setHand(Cards.sortCards(result.remain));
+			List<Card> merged = new ArrayList<>(gainer.getHand());
+			merged.addAll(result.taken);
+			gainer.setHand(Cards.sortCards(merged));
+			DrawTransfer t = new DrawTransfer();
+			t.setFrom(loser.getSeat());
 			t.setTo(g.getSeat());
 			t.setCards(result.taken);
 			draw.getTakes().add(t);
@@ -366,6 +438,37 @@ public class GameEngine {
 		}
 		draw.setStep("showGive");
 		draw.setRevealUntil(System.currentTimeMillis() + DRAW_REVEAL_MS);
+	}
+
+	private void applyOneDevourGive(GameState state, int seat, List<String> ids, int targetSeat) {
+		DrawState draw = state.getDraw();
+		Set<String> idSet = new HashSet<>(ids);
+		GamePlayer gainer = state.getPlayers().get(seat);
+		GamePlayer target = state.getPlayers().get(targetSeat);
+		List<Card> given = new ArrayList<>();
+		List<Card> remain = new ArrayList<>();
+		for (Card c : gainer.getHand()) {
+			if (idSet.contains(c.getId())) {
+				given.add(c);
+			} else {
+				remain.add(c);
+			}
+		}
+		gainer.setHand(Cards.sortCards(remain));
+		List<Card> targetHand = new ArrayList<>(target.getHand());
+		targetHand.addAll(given);
+		target.setHand(Cards.sortCards(targetHand));
+		DrawTransfer t = new DrawTransfer();
+		t.setFrom(seat);
+		t.setTo(targetSeat);
+		t.setCards(given);
+		draw.getGiveCards().add(t);
+		GameEvents.push(state, "system", seat, gainer.getName(),
+				gainer.getName() + " 还给 " + target.getName() + " " + given.size() + " 张", "", given);
+		if (draw.remainingGiveLosers(seat).isEmpty()) {
+			draw.setStep("showGive");
+			draw.setRevealUntil(System.currentTimeMillis() + DRAW_REVEAL_MS);
+		}
 	}
 
 	private void beginPlayAfterDraw(GameState state) {

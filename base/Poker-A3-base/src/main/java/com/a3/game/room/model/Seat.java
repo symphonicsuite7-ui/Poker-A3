@@ -4,6 +4,7 @@ public class Seat {
 
 	private String userId;
 	private String username;
+	private String nickname;
 	private String avatar;
 	private int seat;
 	private boolean online = true;
@@ -23,6 +24,22 @@ public class Seat {
 
 	public void setUsername(String username) {
 		this.username = username;
+	}
+
+	public String getNickname() {
+		return nickname;
+	}
+
+	public void setNickname(String nickname) {
+		this.nickname = nickname;
+	}
+
+	/** 座位旁展示名 */
+	public String displayName() {
+		if (nickname != null && !nickname.isBlank()) {
+			return nickname;
+		}
+		return username;
 	}
 
 	public String getAvatar() {

@@ -44,7 +44,8 @@ public class GameWsDispatcher {
 			case "game:play" -> from(rooms.playCards(user.getUserId(), stringList(data, "cardIds")), true, false, false, false);
 			case "game:pass" -> from(rooms.passTurn(user.getUserId()), true, false, false, false);
 			case "game:drawPick" -> from(rooms.pickDrawTarget(user.getUserId(), intVal(data, "targetSeat")), true, true, false, false);
-			case "game:drawGive" -> from(rooms.giveDrawCards(user.getUserId(), stringList(data, "cardIds")), true, true, false, false);
+			case "game:drawDevour" -> from(rooms.devourDraw(user.getUserId()), true, true, false, false);
+			case "game:drawGive" -> from(rooms.giveDrawCards(user.getUserId(), stringList(data, "cardIds"), intOrNull(data, "targetSeat")), true, true, false, false);
 			case "room:background" -> from(rooms.setBackground(user.getUserId(), background(data)), true, false, false, false);
 			case "room:sync" -> DispatchResult.ack(rooms.getRoomByUser(user.getUserId()), false, false, true, true);
 			default -> DispatchResult.fail("未知事件：" + event);
@@ -74,6 +75,13 @@ public class GameWsDispatcher {
 	private static int intVal(JsonNode data, String field) {
 		if (data == null || data.get(field) == null || data.get(field).isNull()) {
 			return -1;
+		}
+		return data.get(field).asInt();
+	}
+
+	private static Integer intOrNull(JsonNode data, String field) {
+		if (data == null || data.get(field) == null || data.get(field).isNull()) {
+			return null;
 		}
 		return data.get(field).asInt();
 	}

@@ -19,6 +19,8 @@
   let lastEventCount = 0;
   let botTimer = null;
   let botWaitKey = '';
+  /** 吞噬还牌：已点「还牌」、等待点选对象 */
+  let pendingGivePick = false;
 
   const $ = (id) => document.getElementById(id);
 
@@ -134,17 +136,17 @@
     return losers[0].seat;
   }
 
-  function botGiveIds(seat) {
+  function botGiveIds(seat, amount) {
     const d = state.draw;
-    const g = d.gainers.find((x) => x.seat === seat);
-    if (!g) return [];
+    const need = amount != null ? amount : (d.gainers.find((x) => x.seat === seat) || {}).amount || 0;
+    if (!need) return [];
     const hand = state.players[seat].hand;
     const ids = [];
     const used = {};
     (d.takes || []).forEach((t) => {
       if (t.to !== seat) return;
       (t.cards || []).forEach((c) => {
-        if (ids.length >= g.amount) return;
+        if (ids.length >= need) return;
         if (used[c.id]) return;
         if (hand.some((h) => h.id === c.id)) {
           ids.push(c.id);
@@ -152,7 +154,7 @@
         }
       });
     });
-    for (let i = 0; i < hand.length && ids.length < g.amount; i++) {
+    for (let i = 0; i < hand.length && ids.length < need; i++) {
       if (!used[hand[i].id]) {
         ids.push(hand[i].id);
         used[hand[i].id] = true;
@@ -184,6 +186,18 @@
     }
   }
 
+  function runBotDevour(seat) {
+    botTimer = null;
+    if (state.phase !== 'draw' || !state.draw || state.draw.step !== 'devour') return;
+    if (!isBot(seat)) return;
+    const result = PokerGame.devourDraw(state, seat);
+    if (result.ok) {
+      state = result.state;
+      clearSelected();
+      render();
+    }
+  }
+
   function runBotPick(seat) {
     botTimer = null;
     if (state.phase !== 'draw' || !state.draw || state.draw.step !== 'pick') return;
@@ -203,11 +217,21 @@
     botTimer = null;
     if (state.phase !== 'draw' || !state.draw || state.draw.step !== 'give') return;
     if (!isBot(seat)) return;
-    if (mapGet(state.draw.gives, seat)) return;
-    const result = PokerGame.giveDrawCards(state, seat, botGiveIds(seat));
+    let result;
+    if (PokerGame.isDevourDraw(state.draw)) {
+      const rem = PokerGame.remainingGiveLosers(state.draw, seat);
+      if (!rem.length) return;
+      const target = rem[0];
+      const ids = botGiveIds(seat, target.amount);
+      result = PokerGame.giveDrawCards(state, seat, ids, target.seat);
+    } else {
+      if (mapGet(state.draw.gives, seat)) return;
+      result = PokerGame.giveDrawCards(state, seat, botGiveIds(seat));
+    }
     if (result.ok) {
       state = result.state;
       clearSelected();
+      pendingGivePick = false;
       render();
     }
   }
@@ -221,12 +245,22 @@
       }
     } else if (state.phase === 'draw' && state.draw) {
       const d = state.draw;
-      if (d.step === 'pick') {
+      if (d.step === 'devour') {
+        const g = d.gainers[0];
+        if (g && isBot(g.seat)) key = 'devour:' + g.seat;
+      } else if (d.step === 'pick') {
         const g = d.gainers.find((x) => mapGet(d.picks, x.seat) == null);
         if (g && isBot(g.seat)) key = 'pick:' + g.seat;
       } else if (d.step === 'give') {
-        const g = d.gainers.find((x) => !mapGet(d.gives, x.seat));
-        if (g && isBot(g.seat)) key = 'give:' + g.seat;
+        if (PokerGame.isDevourDraw(d)) {
+          const g = d.gainers[0];
+          if (g && isBot(g.seat) && PokerGame.remainingGiveLosers(d, g.seat).length) {
+            key = 'give:' + g.seat + ':' + PokerGame.remainingGiveLosers(d, g.seat).length;
+          }
+        } else {
+          const g = d.gainers.find((x) => !mapGet(d.gives, x.seat));
+          if (g && isBot(g.seat)) key = 'give:' + g.seat;
+        }
       }
     }
     if (!key) {
@@ -239,13 +273,18 @@
     botWaitKey = key;
     if (key.indexOf('play:') === 0) {
       botTimer = setTimeout(runBotPlay, BOT_DELAY_MS);
+    } else if (key.indexOf('devour:') === 0) {
+      const seat = Number(key.split(':')[1]);
+      botTimer = setTimeout(function () {
+        runBotDevour(seat);
+      }, BOT_DELAY_MS);
     } else if (key.indexOf('pick:') === 0) {
-      const seat = Number(key.slice(5));
+      const seat = Number(key.split(':')[1]);
       botTimer = setTimeout(function () {
         runBotPick(seat);
       }, BOT_DELAY_MS);
     } else {
-      const seat = Number(key.slice(5));
+      const seat = Number(key.split(':')[1]);
       botTimer = setTimeout(function () {
         runBotGive(seat);
       }, BOT_DELAY_MS);
@@ -321,19 +360,95 @@
     return html;
   }
 
+  function canPlayerGive(seat) {
+    const d = state.draw;
+    if (state.phase !== 'draw' || !d || d.step !== 'give') return false;
+    if (!d.gainers.some((g) => g.seat === seat)) return false;
+    if (PokerGame.isDevourDraw(d)) {
+      return PokerGame.remainingGiveLosers(d, seat).length > 0;
+    }
+    return !mapGet(d.gives, seat);
+  }
+
+  function giveNeedAmount(seat) {
+    const d = state.draw;
+    if (!d) return 0;
+    if (PokerGame.isDevourDraw(d)) return PokerGame.giveChunkSize(d, seat);
+    const g = d.gainers.find((x) => x.seat === seat);
+    return g ? g.amount : 0;
+  }
+
   function renderDrawOverlay() {
     const overlay = $('draw-overlay');
     const d = state.draw;
-    if (state.phase !== 'draw' || !d || d.step === 'done' || d.step === 'give') {
-      overlay.hidden = true;
-      return;
+    const devourBtn = $('btn-draw-devour');
+    if (devourBtn) devourBtn.hidden = true;
+
+    const showGivePick =
+      pendingGivePick &&
+      state.phase === 'draw' &&
+      d &&
+      d.step === 'give' &&
+      PokerGame.isDevourDraw(d) &&
+      canPlayerGive(MY_SEAT);
+
+    if (
+      state.phase !== 'draw' ||
+      !d ||
+      d.step === 'done' ||
+      (d.step === 'give' && !showGivePick)
+    ) {
+      if (!showGivePick) overlay.hidden = true;
+      if (!showGivePick) return;
     }
+
     overlay.hidden = false;
     $('draw-targets').innerHTML = '';
     $('draw-cards').innerHTML = '';
     $('draw-timer').textContent = '';
 
-    if (d.step === 'pick') {
+    if (d.step === 'devour') {
+      const g = d.gainers[0];
+      const isMe = g && g.seat === MY_SEAT;
+      $('draw-title').textContent = '吞噬' + g.amount + '张牌';
+      $('draw-desc').textContent = isMe
+        ? '点击吞噬，从各减分者手中按失分张数平分抽取'
+        : '等待 ' + state.players[g.seat].name + ' 吞噬';
+      if (devourBtn) {
+        devourBtn.hidden = !isMe;
+        devourBtn.textContent = '吞噬';
+      }
+    } else if (showGivePick) {
+      const need = giveNeedAmount(MY_SEAT);
+      const rem = PokerGame.remainingGiveLosers(d, MY_SEAT);
+      $('draw-title').textContent = '还牌：选择对象';
+      $('draw-desc').textContent =
+        '已选 ' + need + ' 张，请选择一名减分者归还（还需还 ' + rem.length + ' 人）';
+      rem.forEach((loser) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'draw-target';
+        btn.innerHTML =
+          avatarImg(playerAvatar(loser.seat)) +
+          '<span>' +
+          state.players[loser.seat].name +
+          '</span><span class="meta">归还 ' +
+          loser.amount +
+          ' 张</span>';
+        btn.addEventListener('click', () => {
+          const result = PokerGame.giveDrawCards(state, MY_SEAT, selectedIds(), loser.seat);
+          if (!result.ok) {
+            $('hint').textContent = result.reason || '还牌失败';
+            return;
+          }
+          state = result.state;
+          clearSelected();
+          pendingGivePick = false;
+          render();
+        });
+        $('draw-targets').appendChild(btn);
+      });
+    } else if (d.step === 'pick') {
       const meGainer = d.gainers.find((x) => x.seat === MY_SEAT);
       const myPick = meGainer ? mapGet(d.picks, MY_SEAT) : null;
       $('draw-title').textContent = '抽牌：选择对象';
@@ -432,6 +547,9 @@
     div.className = 'card';
     if (opts.faceDown || !card) {
       div.classList.add('back');
+      div.innerHTML = PokerCards.cardBackHtml
+        ? PokerCards.cardBackHtml()
+        : '<img src="/cards/back.svg" alt="" draggable="false" />';
       return div;
     }
     const suit = SUITS[card.suit];
@@ -447,11 +565,8 @@
   /** 只更新选牌高亮和提示，避免整桌重绘导致闪屏。 */
   function updateSelectionUi() {
     const myTurn = state.phase === 'playing' && state.currentPlayer === MY_SEAT;
-    const drawGive = state.phase === 'draw' && state.draw && state.draw.step === 'give';
-    const giveGainer =
-      drawGive &&
-      state.draw.gainers.find((g) => g.seat === MY_SEAT && !mapGet(state.draw.gives, g.seat));
-    const canGive = !!giveGainer;
+    const canGive = canPlayerGive(MY_SEAT);
+    const need = giveNeedAmount(MY_SEAT);
     const ids = selectedIds();
     const hand = $('seat-bottom') && $('seat-bottom').querySelector('.hand');
     if (hand) {
@@ -468,9 +583,9 @@
         ? previewText(ids)
         : '等待 ' + state.players[state.currentPlayer].name + ' 出牌';
     } else if (canGive) {
-      $('btn-draw-give').disabled = ids.length !== giveGainer.amount;
+      $('btn-draw-give').disabled = ids.length !== need;
       if ($('btn-suggest')) $('btn-suggest').disabled = true;
-      $('hint').textContent = '已选 ' + ids.length + ' / ' + giveGainer.amount + ' 张还牌';
+      $('hint').textContent = '已选 ' + ids.length + ' / ' + need + ' 张还牌';
     }
   }
 
@@ -723,10 +838,10 @@
   function render() {
     const drawGive = state.phase === 'draw' && state.draw && state.draw.step === 'give';
     const myTurn = state.phase === 'playing' && state.currentPlayer === MY_SEAT;
-    const giveGainer =
-      drawGive &&
-      state.draw.gainers.find((g) => g.seat === MY_SEAT && !mapGet(state.draw.gives, g.seat));
-    const canGive = !!giveGainer;
+    const canGive = canPlayerGive(MY_SEAT);
+    const need = giveNeedAmount(MY_SEAT);
+    const gameScreen = document.querySelector('.screen-game');
+    if (gameScreen) gameScreen.classList.toggle('draw-give-select', canGive);
 
     if (state.phase === 'settled') {
       $('turn-info').textContent = '本局已结束';
@@ -735,23 +850,31 @@
       $('btn-pass').disabled = true;
       if ($('btn-suggest')) $('btn-suggest').disabled = true;
       $('btn-draw-give').hidden = true;
+      pendingGivePick = false;
     } else if (state.phase === 'draw') {
       $('btn-next').hidden = true;
       $('btn-play').disabled = true;
       $('btn-pass').disabled = true;
       if ($('btn-suggest')) $('btn-suggest').disabled = true;
       if (canGive) {
-        const targetSeat = mapGet(state.draw.picks, MY_SEAT);
         $('turn-info').textContent =
-          '还牌 · 请选出 ' +
-          giveGainer.amount +
-          ' 张还给 ' +
-          state.players[targetSeat].name;
+          PokerGame.isDevourDraw(state.draw)
+            ? '还牌 · 请选出 ' + need + ' 张，点还牌后再选对象'
+            : '还牌 · 请选出 ' + need + ' 张还给 ' + state.players[mapGet(state.draw.picks, MY_SEAT)].name;
         $('btn-draw-give').hidden = false;
-        $('btn-draw-give').disabled = selectedIds().length !== giveGainer.amount;
+        $('btn-draw-give').disabled = selectedIds().length !== need;
       } else {
-        $('turn-info').textContent = '第 ' + state.round + ' 局 · 抽牌阶段';
+        if (state.draw && state.draw.step === 'devour') {
+          const g = state.draw.gainers[0];
+          $('turn-info').textContent =
+            g.seat === MY_SEAT
+              ? '吞噬 ' + g.amount + ' 张牌'
+              : '等待 ' + state.players[g.seat].name + ' 吞噬';
+        } else {
+          $('turn-info').textContent = '第 ' + state.round + ' 局 · 抽牌阶段';
+        }
         $('btn-draw-give').hidden = true;
+        if (!drawGive) pendingGivePick = false;
       }
     } else {
       const cur = state.players[state.currentPlayer];
@@ -823,7 +946,7 @@
         : '等待 ' + state.players[state.currentPlayer].name + ' 出牌';
     } else if (canGive) {
       $('hint').textContent =
-        '已选 ' + selectedIds().length + ' / ' + giveGainer.amount + ' 张还牌';
+        '已选 ' + selectedIds().length + ' / ' + need + ' 张还牌';
     } else if (state.phase === 'draw') {
       $('hint').textContent = '抽牌进行中';
     } else {
@@ -849,7 +972,19 @@
   });
 
   $('btn-draw-give').addEventListener('click', () => {
-    const result = PokerGame.giveDrawCards(state, MY_SEAT, selectedIds());
+    const need = giveNeedAmount(MY_SEAT);
+    const ids = selectedIds();
+    if (ids.length !== need) {
+      $('hint').textContent = '请选择 ' + need + ' 张还牌';
+      return;
+    }
+    if (PokerGame.isDevourDraw(state.draw)) {
+      pendingGivePick = true;
+      renderDrawOverlay();
+      $('hint').textContent = '请选择还牌对象';
+      return;
+    }
+    const result = PokerGame.giveDrawCards(state, MY_SEAT, ids);
     if (!result.ok) {
       $('hint').textContent = result.reason || '还牌失败';
       return;
@@ -858,6 +993,19 @@
     clearSelected();
     render();
   });
+
+  if ($('btn-draw-devour')) {
+    $('btn-draw-devour').addEventListener('click', () => {
+      const result = PokerGame.devourDraw(state, MY_SEAT);
+      if (!result.ok) {
+        $('hint').textContent = result.reason || '吞噬失败';
+        return;
+      }
+      state = result.state;
+      clearSelected();
+      render();
+    });
+  }
 
   $('btn-play').addEventListener('click', () => {
     if (state.currentPlayer !== MY_SEAT) return;

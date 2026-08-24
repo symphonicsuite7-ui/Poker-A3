@@ -1,41 +1,72 @@
-/* 西方中世纪幻想对局主题：不改布局结构，只提升视觉 */
+/* 对局主题：布局不变，配色对齐登录/大厅 calm-breeze（青绿 / 白 / 透明）
+ *
+ * ========== 透明度/形状微调（优先改这里）==========
+ * --mf-bg-overlay          全屏暗色遮罩：0=背景完全透出，1=全黑
+ * --mf-table-overlay       牌桌区域遮罩
+ * --mf-center-fill         中央战斗区底板不透明度（0~1）
+ * --mf-panel-fill          头像条/对手牌槽等面板不透明度
+ * --mf-hand-tray-fill      底部手牌托盘不透明度
+ * --mf-toolbar-fill        顶栏按钮组不透明度
+ * --mf-log-fill            右侧冒险日志不透明度
+ * --mf-tip-fill            底栏提示条不透明度
+ * --mf-center-radius       中央战斗区圆角：0=直角矩形
+ * =================================================
+ */
 
 .screen-game.theme-medieval {
-  --mf-ink: #0c0907;
-  --mf-obsidian: #14100c;
-  --mf-brown: #3a2818;
-  --mf-wood: #2a1a10;
-  --mf-gold: #d4a84b;
-  --mf-gold-deep: #8a5a18;
-  --mf-flame: #e07028;
-  --mf-parchment: #e8d7b0;
-  --mf-parchment-dark: #c4a878;
-  --mf-night: #0a1424;
-  --mf-rune: #6a9ad8;
-  --mf-metal: #7a6a52;
-  --mf-cream: #f0e6d2;
-  /* 越小越能看清背景图：0 为完全透明，1 为完全显示遮罩。 */
-  --mf-background-overlay-opacity: 0.10;
+  /* breeze 色板 */
+  --mf-ink: #1a3d3a;
+  --mf-obsidian: #1e4f4c;
+  --mf-brown: #2a6b6a;
+  --mf-wood: #2f9a7a;
+  --mf-gold: #ffffff;
+  --mf-gold-deep: #3cb88a;
+  --mf-flame: #53e3a6;
+  --mf-parchment: #ffffff;
+  --mf-parchment-dark: rgba(255, 255, 255, 0.82);
+  --mf-night: #2a6b6a;
+  --mf-rune: #7ad9b8;
+  --mf-metal: rgba(255, 255, 255, 0.55);
+  --mf-cream: #ffffff;
+  --mf-teal: #2a6b6a;
+  --mf-mint: #3cb88a;
+  --mf-mint-hot: #53e3a6;
+
+  /* —— 透明度（更透，背景图不被糊住） —— */
+  --mf-bg-overlay: 0;
+  --mf-table-overlay: 0;
+  --mf-center-fill: 0.14;
+  --mf-panel-fill: 0.22;
+  --mf-hand-tray-fill: 0.2;
+  --mf-toolbar-fill: 0.24;
+  --mf-log-fill: 0.32;
+  --mf-tip-fill: 0.22;
+  /* —— 形状 —— */
+  --mf-center-radius: 14px;
+
+  /* 兼容旧变量名 */
+  --mf-background-overlay-opacity: var(--mf-bg-overlay);
   --gold: var(--mf-gold);
   --gold-hot: var(--mf-flame);
   --cream: var(--mf-cream);
-  --panel: rgba(20, 14, 10, 0.78);
-  --line: rgba(212, 168, 75, 0.35);
-  font-family: "Palatino Linotype", "Book Antiqua", "Songti SC", "SimSun", Georgia, serif;
+  --panel: rgba(42, 107, 106, var(--mf-panel-fill));
+  --line: rgba(255, 255, 255, 0.35);
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-weight: 300;
 }
 
-/* —— 背景：暗色竞技场景深 + 烟雾/星尘粒子 —— */
+/* —— 背景：极淡青绿气韵 —— */
 .screen-game.theme-medieval::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: var(--mf-background-overlay-opacity);
+  opacity: var(--mf-bg-overlay);
   background:
-    radial-gradient(ellipse at 50% 78%, rgba(224, 112, 40, 0.12) 0%, transparent 42%),
-    radial-gradient(ellipse at 50% 35%, rgba(10, 20, 36, 0.35) 0%, transparent 55%),
-    linear-gradient(180deg, rgba(8, 6, 4, 0.55) 0%, rgba(12, 8, 5, 0.35) 40%, rgba(8, 5, 3, 0.72) 100%);
+    radial-gradient(ellipse at 50% 78%, rgba(83, 227, 166, 0.14) 0%, transparent 42%),
+    radial-gradient(ellipse at 50% 35%, rgba(42, 107, 106, 0.22) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(42, 107, 106, 0.35) 0%, rgba(60, 184, 138, 0.18) 45%, rgba(42, 107, 106, 0.4) 100%);
 }
 
 .screen-game.theme-medieval::after {
@@ -44,29 +75,29 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.55;
+  opacity: 0.2;
   background-image:
-    radial-gradient(1px 1px at 12% 18%, rgba(240, 220, 160, 0.7), transparent),
-    radial-gradient(1px 1px at 28% 42%, rgba(212, 168, 75, 0.55), transparent),
-    radial-gradient(1.5px 1.5px at 48% 22%, rgba(240, 230, 200, 0.45), transparent),
-    radial-gradient(1px 1px at 66% 58%, rgba(212, 168, 75, 0.5), transparent),
-    radial-gradient(1px 1px at 78% 30%, rgba(240, 220, 160, 0.4), transparent),
-    radial-gradient(1.5px 1.5px at 88% 70%, rgba(224, 112, 40, 0.35), transparent),
-    radial-gradient(1px 1px at 40% 75%, rgba(240, 220, 160, 0.35), transparent);
+    radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 28% 42%, rgba(83, 227, 166, 0.45), transparent),
+    radial-gradient(1.5px 1.5px at 48% 22%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 66% 58%, rgba(60, 184, 138, 0.45), transparent),
+    radial-gradient(1px 1px at 78% 30%, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1.5px 1.5px at 88% 70%, rgba(83, 227, 166, 0.35), transparent),
+    radial-gradient(1px 1px at 40% 75%, rgba(255, 255, 255, 0.3), transparent);
   animation: mf-dust 14s linear infinite;
 }
 
 @keyframes mf-dust {
   0% {
     transform: translateY(0);
-    opacity: 0.45;
+    opacity: 0.35;
   }
   50% {
-    opacity: 0.7;
+    opacity: 0.55;
   }
   100% {
     transform: translateY(-18px);
-    opacity: 0.45;
+    opacity: 0.35;
   }
 }
 
@@ -75,7 +106,7 @@
   z-index: 1;
 }
 
-/* —— 顶栏：城堡控制面板 —— */
+/* —— 顶栏 —— */
 .screen-game.theme-medieval .game-toolbar-bar {
   top: 12px;
   left: 14px;
@@ -85,92 +116,65 @@
 .screen-game.theme-medieval .game-back {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, #4a3a28 0%, #2a1c12 100%);
-  border: 1px solid var(--mf-gold);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 230, 180, 0.25),
-    0 4px 12px rgba(0, 0, 0, 0.45);
-  color: var(--mf-cream);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  color: #fff;
+  backdrop-filter: none;
 }
 
 .screen-game.theme-medieval .game-toolbar {
   gap: 8px;
   padding: 7px 10px;
-  border-radius: 10px;
-  background:
-    linear-gradient(180deg, rgba(58, 40, 24, 0.92) 0%, rgba(24, 16, 10, 0.92) 100%);
-  border: 1px solid rgba(212, 168, 75, 0.45);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 220, 160, 0.12),
-    0 8px 20px rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  background: rgba(42, 107, 106, var(--mf-toolbar-fill));
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
   backdrop-filter: none;
 }
 
 .screen-game.theme-medieval .game-toolbar .btn {
   padding: 7px 14px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 0.86rem;
+  font-weight: 400;
   letter-spacing: 0.04em;
-  background: linear-gradient(180deg, #5a4632 0%, #2e2014 100%);
-  border: 1px solid rgba(212, 168, 75, 0.5);
-  color: var(--mf-cream);
-  box-shadow: inset 0 1px 0 rgba(255, 230, 180, 0.15);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #fff;
+  box-shadow: none;
+  text-shadow: none;
 }
 
 .screen-game.theme-medieval .game-toolbar .btn:hover:not(:disabled) {
-  background: linear-gradient(180deg, #6a543c 0%, #3a2818 100%);
-  border-color: var(--mf-gold);
-  box-shadow: 0 0 12px rgba(212, 168, 75, 0.25);
+  background: rgba(255, 255, 255, 0.3);
+  border-color: #fff;
+  box-shadow: none;
 }
 
+.screen-game.theme-medieval .game-toolbar .btn-primary,
 .screen-game.theme-medieval .game-toolbar .btn-accent {
-  background: linear-gradient(180deg, #6a7a98 0%, #2a3848 100%);
-  border-color: rgba(160, 180, 210, 0.45);
+  background: #fff;
+  border-color: transparent;
+  color: #2f9a7a;
 }
 
-/* —— 牌桌：古老魔法竞技场 —— */
+.screen-game.theme-medieval .game-toolbar .btn-primary:hover:not(:disabled),
+.screen-game.theme-medieval .game-toolbar .btn-accent:hover:not(:disabled) {
+  background: #f5f7f9;
+  color: #2f9a7a;
+}
+
+/* —— 牌桌 —— */
 .screen-game.theme-medieval .table {
   position: relative;
   padding: 48px 12px 10px 10px;
-  background:
-    radial-gradient(ellipse at 50% 48%, rgba(212, 168, 75, 0.1) 0%, transparent 38%),
-    radial-gradient(ellipse at 50% 55%, rgba(80, 40, 16, 0.35) 0%, transparent 62%),
-    linear-gradient(180deg, rgba(10, 8, 6, 0.42) 0%, rgba(14, 10, 7, 0.55) 100%);
+  background: rgba(42, 107, 106, var(--mf-table-overlay));
 }
 
 .screen-game.theme-medieval .table::before {
-  content: '';
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 18%;
-  bottom: 22%;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse at center, transparent 42%, rgba(212, 168, 75, 0.08) 52%, transparent 68%),
-    radial-gradient(ellipse at center, rgba(20, 12, 8, 0.25) 0%, transparent 70%);
-  box-shadow:
-    inset 0 0 0 2px rgba(212, 168, 75, 0.18),
-    inset 0 0 40px rgba(224, 112, 40, 0.08),
-    0 0 60px rgba(0, 0, 0, 0.35);
-  animation: mf-arena-pulse 6s ease-in-out infinite;
-}
-
-@keyframes mf-arena-pulse {
-  0%,
-  100% {
-    opacity: 0.75;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.015);
-  }
+  content: none;
 }
 
 .screen-game.theme-medieval .table > * {
@@ -178,15 +182,17 @@
   z-index: 1;
 }
 
-/* —— 中央魔法桌 —— */
+/* —— 中央区 —— */
 .screen-game.theme-medieval .center-info {
   position: relative;
   margin: 2px 10px;
   padding: 16px 18px;
-  border-radius: 0;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
+  border-radius: var(--mf-center-radius);
+  background:
+    radial-gradient(circle at 50% 48%, rgba(83, 227, 166, 0.12) 0%, transparent 42%),
+    rgba(42, 107, 106, var(--mf-center-fill));
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
   backdrop-filter: none;
   overflow: visible;
 }
@@ -202,14 +208,14 @@
 }
 
 .screen-game.theme-medieval .turn-info {
-  color: var(--mf-cream);
-  font-weight: 700;
+  color: #fff;
+  font-weight: 400;
   letter-spacing: 0.06em;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.65), 0 0 12px rgba(212, 168, 75, 0.25);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
 
 .screen-game.theme-medieval .team-info {
-  color: var(--mf-parchment-dark);
+  color: rgba(255, 255, 255, 0.82);
   font-size: 0.82rem;
 }
 
@@ -217,14 +223,14 @@
   display: none;
   margin-top: 6px;
   padding: 4px 14px;
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.14em;
-  color: #2a1608;
-  background: linear-gradient(180deg, #f0c86a 0%, #c87820 100%);
-  border: 1px solid rgba(255, 230, 160, 0.55);
-  box-shadow: 0 0 18px rgba(224, 112, 40, 0.45);
+  color: #2f9a7a;
+  background: #fff;
+  border: 1px solid transparent;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
   animation: mf-turn-float 1.8s ease-in-out infinite;
 }
 
@@ -242,17 +248,17 @@
   }
 }
 
-/* —— 出牌战斗展示 —— */
+/* —— 出牌展示 —— */
 .screen-game.theme-medieval .seat-play--fresh {
   animation: mf-play-land 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2);
-  filter: drop-shadow(0 0 10px rgba(212, 168, 75, 0.55));
+  filter: drop-shadow(0 0 10px rgba(83, 227, 166, 0.45));
 }
 
 .screen-game.theme-medieval .seat-play--fresh .seat-play-cards .card.tiny {
   box-shadow:
-    0 0 0 2px rgba(212, 168, 75, 0.85),
-    0 0 16px rgba(224, 112, 40, 0.45),
-    0 8px 18px rgba(0, 0, 0, 0.45);
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    0 0 16px rgba(83, 227, 166, 0.4),
+    0 8px 18px rgba(0, 0, 0, 0.25);
 }
 
 @keyframes mf-play-land {
@@ -271,15 +277,16 @@
 }
 
 .screen-game.theme-medieval .seat-pass {
-  background: linear-gradient(180deg, #3a2a1c 0%, #1a120c 100%);
-  border: 1px solid rgba(212, 168, 75, 0.45);
-  color: var(--mf-parchment);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
   letter-spacing: 0.12em;
+  backdrop-filter: none;
 }
 
-/* —— 玩家头像：骑士徽章框 —— */
+/* —— 玩家头像条 —— */
 .screen-game.theme-medieval .seat:not(.current) {
-  filter: brightness(0.72) saturate(0.85);
+  filter: brightness(0.88) saturate(0.92);
   transition: filter 0.25s ease;
 }
 
@@ -288,26 +295,21 @@
 }
 
 .screen-game.theme-medieval .seat-info {
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 5px 12px 5px 5px;
-  background:
-    linear-gradient(180deg, rgba(58, 40, 24, 0.92) 0%, rgba(20, 14, 10, 0.92) 100%);
-  border: 1px solid rgba(212, 168, 75, 0.45);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 230, 180, 0.12),
-    0 6px 16px rgba(0, 0, 0, 0.4);
+  background: rgba(42, 107, 106, var(--mf-panel-fill));
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
   backdrop-filter: none;
 }
 
 .screen-game.theme-medieval .seat.current .seat-info {
   outline: none;
-  border-color: var(--mf-gold);
-  background:
-    linear-gradient(180deg, rgba(90, 58, 20, 0.95) 0%, rgba(40, 24, 10, 0.95) 100%);
+  border-color: #fff;
+  background: rgba(60, 184, 138, 0.28);
   box-shadow:
-    0 0 0 2px rgba(212, 168, 75, 0.55),
-    0 0 22px rgba(224, 112, 40, 0.45),
-    inset 0 0 18px rgba(212, 168, 75, 0.12);
+    0 0 0 2px rgba(255, 255, 255, 0.55),
+    0 0 18px rgba(83, 227, 166, 0.35);
   animation: mf-current-breathe 2.2s ease-in-out infinite;
 }
 
@@ -315,13 +317,13 @@
   0%,
   100% {
     box-shadow:
-      0 0 0 2px rgba(212, 168, 75, 0.45),
-      0 0 14px rgba(224, 112, 40, 0.3);
+      0 0 0 2px rgba(255, 255, 255, 0.4),
+      0 0 12px rgba(83, 227, 166, 0.25);
   }
   50% {
     box-shadow:
-      0 0 0 3px rgba(240, 200, 100, 0.75),
-      0 0 28px rgba(224, 112, 40, 0.55);
+      0 0 0 3px rgba(255, 255, 255, 0.75),
+      0 0 22px rgba(83, 227, 166, 0.45);
   }
 }
 
@@ -330,21 +332,18 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 3px solid var(--mf-gold);
-  box-shadow:
-    0 0 0 2px #3a2810,
-    0 0 0 4px rgba(212, 168, 75, 0.35),
-    0 4px 10px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .screen-game.theme-medieval .seat-info .pname {
-  color: var(--mf-cream);
-  font-weight: 800;
+  color: #fff;
+  font-weight: 400;
   letter-spacing: 0.03em;
 }
 
 .screen-game.theme-medieval .seat-info .meta {
-  color: var(--mf-parchment-dark);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .screen-game.theme-medieval .seat-stats {
@@ -358,46 +357,42 @@
   font-size: 0.68rem;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(212, 168, 75, 0.28);
-  color: var(--mf-parchment);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
   white-space: nowrap;
 }
 
 .screen-game.theme-medieval .stat-chip.pts {
-  color: var(--mf-gold);
-  border-color: rgba(212, 168, 75, 0.5);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.22);
 }
 
-/* —— 对手牌槽：石木托盘 —— */
+/* —— 对手牌槽 —— */
 .screen-game.theme-medieval .seat-top .hand,
 .screen-game.theme-medieval .seat-left .hand.vertical,
 .screen-game.theme-medieval .seat-right .hand.vertical {
-  background:
-    linear-gradient(180deg, rgba(42, 28, 16, 0.88) 0%, rgba(18, 12, 8, 0.9) 100%);
-  border: 1px solid rgba(212, 168, 75, 0.35);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 220, 160, 0.08),
-    0 8px 22px rgba(0, 0, 0, 0.4);
+  background: rgba(42, 107, 106, var(--mf-panel-fill));
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
   backdrop-filter: none;
 }
 
-/* —— 底部手牌：收藏展示托盘 —— */
+/* —— 底部手牌托盘 —— */
 .screen-game.theme-medieval .seat-bottom .hand.horizontal {
   padding: 14px 18px 10px;
-  border-radius: 16px 16px 10px 10px;
-  background:
-    linear-gradient(180deg, rgba(58, 40, 22, 0.72) 0%, rgba(20, 14, 10, 0.88) 100%);
-  border: 1px solid rgba(212, 168, 75, 0.4);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 230, 180, 0.1),
-    0 -4px 24px rgba(0, 0, 0, 0.35);
+  border-radius: 12px 12px 8px 8px;
+  background: rgba(42, 107, 106, var(--mf-hand-tray-fill));
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  backdrop-filter: none;
 }
 
 .screen-game.theme-medieval .seat-bottom .card {
   box-shadow:
-    0 6px 14px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(212, 168, 75, 0.25);
+    0 6px 14px rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.25);
   border-radius: 8px;
   transition: transform 0.14s ease, box-shadow 0.14s ease, filter 0.14s ease;
 }
@@ -406,18 +401,18 @@
   transform: translateY(-18px) scale(1.04);
   z-index: 10;
   box-shadow:
-    0 0 0 2px rgba(212, 168, 75, 0.85),
-    0 12px 24px rgba(0, 0, 0, 0.5),
-    0 0 18px rgba(212, 168, 75, 0.35);
-  filter: brightness(1.06);
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    0 12px 24px rgba(0, 0, 0, 0.25),
+    0 0 18px rgba(83, 227, 166, 0.35);
+  filter: brightness(1.04);
 }
 
 .screen-game.theme-medieval .card.selected {
   transform: translateY(-16px);
   box-shadow:
-    0 0 0 3px rgba(106, 154, 216, 0.95),
-    0 0 18px rgba(106, 154, 216, 0.45),
-    0 10px 20px rgba(0, 0, 0, 0.45);
+    0 0 0 3px rgba(255, 255, 255, 0.95),
+    0 0 18px rgba(83, 227, 166, 0.4),
+    0 10px 20px rgba(0, 0, 0, 0.25);
   z-index: 12;
 }
 
@@ -425,49 +420,26 @@
   margin-left: -14px;
 }
 
-/* —— 卡背：魔法秘典 —— */
+/* —— 卡背 —— */
 .screen-game.theme-medieval .card.back {
-  background-color: #0c1422;
-  background-image:
-    radial-gradient(circle at 50% 48%, rgba(212, 168, 75, 0.35) 0%, transparent 28%),
-    radial-gradient(circle at 50% 50%, transparent 32%, rgba(10, 16, 28, 0.55) 33%, transparent 36%),
-    linear-gradient(145deg, rgba(212, 168, 75, 0.2) 0%, transparent 40%),
-    linear-gradient(325deg, rgba(106, 154, 216, 0.18) 0%, transparent 42%),
-    url('/cards/back.png');
-  background-size: cover;
-  background-position: center;
+  background-color: #2a6b6a;
+  background-image: none;
   box-shadow:
-    inset 0 0 0 2px rgba(212, 168, 75, 0.55),
-    inset 0 0 0 4px rgba(20, 14, 10, 0.9),
-    0 4px 12px rgba(0, 0, 0, 0.5);
+    0 0 0 1px rgba(255, 255, 255, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.25);
   position: relative;
   overflow: hidden;
 }
 
 .screen-game.theme-medieval .card.back::after {
-  content: '✦';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  color: rgba(212, 168, 75, 0.55);
-  font-size: 1.1rem;
-  text-shadow: 0 0 10px rgba(106, 154, 216, 0.55);
-  pointer-events: none;
-  animation: mf-rune-glow 2.8s ease-in-out infinite;
+  content: none;
 }
 
-@keyframes mf-rune-glow {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-  50% {
-    opacity: 0.95;
-  }
+.screen-game.theme-medieval .card.back img {
+  object-fit: cover;
 }
 
-/* —— 操作按钮：中世纪金属 —— */
+/* —— 操作按钮 —— */
 .screen-game.theme-medieval .controls {
   padding: 6px 12px 4px;
 }
@@ -480,66 +452,55 @@
 .screen-game.theme-medieval .control-btns .btn {
   min-width: 88px;
   padding: 10px 16px;
-  border-radius: 10px;
+  border-radius: 4px;
   font-family: inherit;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  background: linear-gradient(180deg, #5a4630 0%, #2a1c12 55%, #1a120c 100%);
-  border: 2px solid rgba(160, 130, 80, 0.65);
-  color: var(--mf-parchment);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.65);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 230, 180, 0.18),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.45),
-    0 6px 14px rgba(0, 0, 0, 0.4);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+  text-shadow: none;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  backdrop-filter: none;
 }
 
 .screen-game.theme-medieval .control-btns .btn:hover:not(:disabled) {
-  background: linear-gradient(180deg, #6a5438 0%, #3a2818 100%);
-  border-color: var(--mf-gold);
+  background: rgba(255, 255, 255, 0.3);
+  border-color: #fff;
 }
 
 .screen-game.theme-medieval .control-btns .btn-primary {
   min-width: 128px;
   padding: 14px 28px;
   font-size: 1.12rem;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #f2c45a 0%, #d48820 45%, #a05810 100%);
-  border: 2px solid #ffe09a;
-  color: #2a1608;
-  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.35);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 245, 210, 0.55),
-    0 0 22px rgba(224, 112, 40, 0.45),
-    0 8px 18px rgba(0, 0, 0, 0.45);
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid transparent;
+  color: #2f9a7a;
+  text-shadow: none;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
   animation: mf-cta-glow 2.4s ease-in-out infinite;
 }
 
 .screen-game.theme-medieval .control-btns .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #ffd470 0%, #e89828 50%, #b86814 100%);
-  filter: brightness(1.05);
+  background: #f5f7f9;
+  filter: none;
 }
 
 @keyframes mf-cta-glow {
   0%,
   100% {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 245, 210, 0.5),
-      0 0 16px rgba(224, 112, 40, 0.35),
-      0 8px 18px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
   }
   50% {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 245, 210, 0.65),
-      0 0 28px rgba(224, 112, 40, 0.6),
-      0 8px 18px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 22px rgba(83, 227, 166, 0.35);
   }
 }
 
 .screen-game.theme-medieval .control-btns .btn-ghost {
-  background: linear-gradient(180deg, #3a3028 0%, #1a1410 100%);
-  border-color: rgba(120, 100, 70, 0.55);
-  color: #c8b898;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .screen-game.theme-medieval .btn-ico {
@@ -547,68 +508,62 @@
   opacity: 0.9;
 }
 
-/* —— 右侧冒险日志（羊皮卷） —— */
+/* —— 右侧日志 —— */
 .screen-game.theme-medieval .log-panel {
-  background:
-    linear-gradient(180deg, rgba(232, 215, 176, 0.92) 0%, rgba(196, 168, 120, 0.94) 100%);
-  border-left: 3px solid rgba(212, 168, 75, 0.65);
-  box-shadow:
-    inset 0 0 0 1px rgba(90, 60, 24, 0.35),
-    inset 8px 0 24px rgba(90, 50, 20, 0.12),
-    -8px 0 28px rgba(0, 0, 0, 0.35);
-  color: #2a1a0c;
+  background: rgba(255, 255, 255, var(--mf-log-fill));
+  border-left: 2px solid rgba(47, 154, 122, 0.45);
+  box-shadow: -8px 0 28px rgba(0, 0, 0, 0.12);
+  color: #2a6b6a;
   backdrop-filter: none;
   padding: 52px 12px 12px;
 }
 
 .screen-game.theme-medieval .log-panel h2 {
-  color: #5a3a14;
+  color: #2f9a7a;
   font-size: 1.05rem;
+  font-weight: 400;
   letter-spacing: 0.14em;
   text-align: center;
-  border-bottom: 1px solid rgba(90, 60, 24, 0.35);
+  border-bottom: 1px solid rgba(42, 107, 106, 0.2);
   padding-bottom: 8px;
   margin-bottom: 10px;
-  text-shadow: 0 1px 0 rgba(255, 240, 210, 0.4);
+  text-shadow: none;
 }
 
-.screen-game.theme-medieval .log-panel h2::before {
-  content: '❧ ';
-}
-
+.screen-game.theme-medieval .log-panel h2::before,
 .screen-game.theme-medieval .log-panel h2::after {
-  content: ' ❧';
+  content: none;
 }
 
 .screen-game.theme-medieval .log {
-  color: #3a2814;
+  color: #2a6b6a;
   font-size: 0.84rem;
 }
 
 .screen-game.theme-medieval .log li {
-  border-bottom: 1px dashed rgba(90, 60, 24, 0.28);
+  border-bottom: 1px dashed rgba(42, 107, 106, 0.22);
   padding: 10px 4px;
 }
 
 .screen-game.theme-medieval .log-item-name {
-  color: #4a2c0c;
-  font-weight: 800;
+  color: #2f9a7a;
+  font-weight: 600;
 }
 
 .screen-game.theme-medieval .log-item-tag {
-  color: #8a4a10;
-  font-style: italic;
+  color: #3cb88a;
+  font-style: normal;
 }
 
 .screen-game.theme-medieval .log-item-text {
-  color: #3a2814;
+  color: #2a6b6a;
 }
 
 .screen-game.theme-medieval .log-item-time {
   margin-left: auto;
   font-size: 0.72rem;
-  color: #7a5a30;
-  opacity: 0.85;
+  color: rgba(42, 107, 106, 0.65);
+  opacity: 0.95;
 }
 
 .screen-game.theme-medieval .log-item-head {
@@ -618,32 +573,33 @@
 .screen-game.theme-medieval .log-item-head .avatar {
   width: 28px;
   height: 28px;
-  border: 2px solid rgba(138, 90, 24, 0.65);
+  border: 2px solid rgba(47, 154, 122, 0.55);
 }
 
 /* —— 底栏提示 —— */
 .screen-game.theme-medieval .game-tip-bar {
-  background: linear-gradient(180deg, rgba(30, 20, 12, 0.92) 0%, rgba(14, 10, 7, 0.95) 100%);
-  border-top: 1px solid rgba(212, 168, 75, 0.35);
+  background: rgba(42, 107, 106, var(--mf-tip-fill));
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: none;
 }
 
 .screen-game.theme-medieval .game-tip-bar .hint {
-  color: var(--mf-parchment);
+  color: #fff;
   letter-spacing: 0.04em;
 }
 
-/* —— 思考气泡保留，色调偏羊皮 —— */
+/* —— 思考气泡 —— */
 .screen-game.theme-medieval .think-bubble {
-  background: #f3e6c8;
-  border: 1px solid rgba(138, 90, 24, 0.45);
+  background: #fff;
+  border: 1px solid rgba(47, 154, 122, 0.35);
 }
 
 .screen-game.theme-medieval .think-bubble::after {
-  background: #f3e6c8;
+  background: #fff;
 }
 
 .screen-game.theme-medieval .think-bubble span {
-  background: #6a4a28;
+  background: #2f9a7a;
 }
 
 /* 牌区最终尺寸：覆盖基础样式，确保牌始终收在各自托盘内。 */
@@ -697,4 +653,61 @@
 .screen-game.theme-medieval .seat-bottom .card.selected,
 .screen-game.theme-medieval .seat-bottom .card.playable:hover {
   transform: translateY(-8px);
+}
+
+/* 还牌选牌时底部手牌放大，便于看清 */
+.screen-game.theme-medieval.draw-give-select .seat-bottom .card {
+  width: 86px;
+  height: 122px;
+}
+
+.screen-game.theme-medieval.draw-give-select .seat-bottom .hand.horizontal .card {
+  margin-left: -22px;
+}
+
+/* —— 抽牌弹层（同色系） —— */
+.draw-overlay.theme-medieval {
+  background: rgba(42, 107, 106, 0.28);
+  backdrop-filter: none;
+}
+
+.draw-overlay.theme-medieval .draw-panel {
+  background: linear-gradient(160deg, rgba(42, 107, 106, 0.72) 0%, rgba(60, 184, 138, 0.68) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  color: #fff;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.draw-overlay.theme-medieval .draw-panel h2 {
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  color: #fff;
+}
+
+.draw-overlay.theme-medieval .draw-desc {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.draw-overlay.theme-medieval .draw-target {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  border-radius: 6px;
+}
+
+.draw-overlay.theme-medieval .draw-target:hover:not(:disabled),
+.draw-overlay.theme-medieval .draw-target:enabled:active {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: #fff;
+}
+
+.draw-overlay.theme-medieval .btn-primary {
+  background: #fff;
+  border: none;
+  color: #2f9a7a;
+  border-radius: 4px;
+  font-weight: 400;
 }

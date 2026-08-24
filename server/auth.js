@@ -33,7 +33,21 @@ function saveUsers(data) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
-/** @type {Map<string, { userId: string, username: string, avatar: string, createdAt: number }>} */
+function normalizeNickname(raw, fallbackUsername) {
+  const nick = String(raw == null ? '' : raw).trim();
+  if (!nick) return '';
+  if (nick.length > 32) return null; // 无效
+  return nick;
+}
+
+/** 展示名：有昵称用昵称，否则用户名 */
+function displayName(userLike) {
+  if (!userLike) return '';
+  const nick = String(userLike.nickname || '').trim();
+  return nick || userLike.username || '';
+}
+
+/** @type {Map<string, { userId: string, username: string, nickname: string, avatar: string, createdAt: number }>} */
 const sessions = new Map();
 
 function createSession(user) {
@@ -41,6 +55,7 @@ function createSession(user) {
   sessions.set(token, {
     userId: user.id,
     username: user.username,
+    nickname: user.nickname || '',
     avatar: avatars.normalizeAvatar(user.avatar),
     createdAt: Date.now(),
   });
@@ -60,7 +75,9 @@ function publicUser(user) {
   return {
     id: user.id,
     username: user.username,
+    nickname: user.nickname || '',
     avatar: avatars.normalizeAvatar(user.avatar),
+    background: user.background || null,
   };
 }
 
@@ -73,10 +90,19 @@ function updateUser(userId, changes) {
   const data = loadUsers();
   const user = data.users.find((u) => u.id === userId);
   if (!user) return null;
+  if (Object.prototype.hasOwnProperty.call(changes, 'nickname')) {
+    const nick = normalizeNickname(changes.nickname, user.username);
+    if (nick === null) return { ok: false, error: '昵称过长' };
+    user.nickname = nick;
+    delete changes.nickname;
+  }
   Object.assign(user, changes);
   saveUsers(data);
   for (const session of sessions.values()) {
-    if (session.userId === userId && changes.avatar) session.avatar = changes.avatar;
+    if (session.userId !== userId) continue;
+    if (user.avatar) session.avatar = avatars.normalizeAvatar(user.avatar);
+    session.nickname = user.nickname || '';
+    session.username = user.username;
   }
   return publicUser(user);
 }
@@ -84,7 +110,7 @@ function updateUser(userId, changes) {
 /**
  * @param {string} username
  * @param {string} password
- * @param {{ avatar?: string, file?: object }} [opts]
+ * @param {{ avatar?: string, file?: object, nickname?: string }} [opts]
  */
 function register(username, password, opts) {
   opts = opts || {};
@@ -96,6 +122,9 @@ function register(username, password, opts) {
   if (pass.length < 4 || pass.length > 32) {
     return { ok: false, error: '密码需 4-32 位' };
   }
+
+  const nick = normalizeNickname(opts.nickname, name);
+  if (nick === null) return { ok: false, error: '昵称过长' };
 
   let avatar = avatars.PRESETS[0];
   if (opts.file) {
@@ -114,6 +143,7 @@ function register(username, password, opts) {
   const user = {
     id: uuid(),
     username: name,
+    nickname: nick || '',
     passwordHash: bcrypt.hashSync(pass, 8),
     avatar: avatar,
     createdAt: Date.now(),
@@ -137,6 +167,7 @@ function login(username, password) {
     user.avatar = avatars.PRESETS[0];
     saveUsers(data);
   }
+  if (user.nickname == null) user.nickname = '';
   const token = createSession(user);
   return { ok: true, token, user: publicUser(user) };
 }
@@ -159,4 +190,5 @@ module.exports = {
   findUserById,
   publicUser,
   updateUser,
+  displayName,
 };

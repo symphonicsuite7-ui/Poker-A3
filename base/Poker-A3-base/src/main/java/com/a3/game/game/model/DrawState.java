@@ -8,6 +8,8 @@ import java.util.Map;
 public class DrawState {
 
 	private String step;
+	/** normal | devour（独吞头游/二游平分吞噬） */
+	private String mode = "normal";
 	private boolean uniqueTargets;
 	private List<DrawParty> gainers = new ArrayList<>();
 	private List<DrawParty> losers = new ArrayList<>();
@@ -20,6 +22,7 @@ public class DrawState {
 	public DrawState copy() {
 		DrawState d = new DrawState();
 		d.step = step;
+		d.mode = mode;
 		d.uniqueTargets = uniqueTargets;
 		for (DrawParty g : gainers) {
 			d.gainers.add(g.copy());
@@ -47,6 +50,18 @@ public class DrawState {
 
 	public void setStep(String step) {
 		this.step = step;
+	}
+
+	public String getMode() {
+		return mode == null ? "normal" : mode;
+	}
+
+	public void setMode(String mode) {
+		this.mode = mode;
+	}
+
+	public boolean isDevour() {
+		return "devour".equals(getMode());
 	}
 
 	public boolean isUniqueTargets() {
@@ -102,5 +117,27 @@ public class DrawState {
 			return v;
 		}
 		return gives.get(Integer.toString(seat));
+	}
+
+	/** 尚未归还的减分者（吞噬分批还牌） */
+	public List<DrawParty> remainingGiveLosers(int gainerSeat) {
+		java.util.HashSet<Integer> done = new java.util.HashSet<>();
+		for (DrawTransfer t : giveCards) {
+			if (t.getFrom() == gainerSeat) {
+				done.add(t.getTo());
+			}
+		}
+		List<DrawParty> rem = new ArrayList<>();
+		for (DrawParty l : losers) {
+			if (!done.contains(l.getSeat())) {
+				rem.add(l);
+			}
+		}
+		return rem;
+	}
+
+	public int giveChunkSize(int gainerSeat) {
+		List<DrawParty> rem = remainingGiveLosers(gainerSeat);
+		return rem.isEmpty() ? 0 : rem.get(0).getAmount();
 	}
 }

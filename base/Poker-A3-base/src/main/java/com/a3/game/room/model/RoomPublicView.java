@@ -20,6 +20,7 @@ public class RoomPublicView {
 	public static class SeatView {
 		private String userId;
 		private String username;
+		private String nickname;
 		private String avatar;
 		private int seat;
 		private boolean online;
@@ -40,6 +41,14 @@ public class RoomPublicView {
 
 		public void setUsername(String username) {
 			this.username = username;
+		}
+
+		public String getNickname() {
+			return nickname;
+		}
+
+		public void setNickname(String nickname) {
+			this.nickname = nickname;
 		}
 
 		public String getAvatar() {

@@ -1,8 +1,10 @@
 /**
  * 背景图库：全界面按钮、选图确认、应用背景
+ * 右下角 dock 与登录/大厅 calm-breeze 风格统一；可切换「壁纸预览 / 当前界面背景」
  */
 (function (global) {
   const STORAGE_KEY = 'poker_bg';
+  const PEEK_KEY = 'poker_bg_peek';
   let images = [];
   let onPicked = null;
   let getToken = null;
@@ -10,6 +12,8 @@
   let grid = null;
   let actionDialog = null;
   let uploadDialog = null;
+  let bgToggleBtn = null;
+  let peeking = false;
 
   function applyBackground(url) {
     const els = [document.documentElement, document.body];
@@ -39,19 +43,62 @@
     } catch (e) {}
   }
 
+  function savedImage() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    } catch (e) {
+      return null;
+    }
+  }
+
   function restore() {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      const saved = savedImage();
       if (saved && saved.url) applyBackground(saved.url);
+      peeking = localStorage.getItem(PEEK_KEY) === '1';
+      applyPeek(peeking, true);
     } catch (e) {}
   }
 
   function currentFile() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-      return saved && saved.file ? saved.file : '';
-    } catch (e) {
-      return '';
+    const saved = savedImage();
+    return saved && saved.file ? saved.file : '';
+  }
+
+  function syncPeekButton() {
+    if (!bgToggleBtn) return;
+    bgToggleBtn.textContent = peeking ? '当前背景' : '显示背景图';
+    bgToggleBtn.setAttribute('aria-pressed', peeking ? 'true' : 'false');
+    bgToggleBtn.classList.toggle('is-active', peeking);
+  }
+
+  /** peek=true 透出壁纸；false 恢复登录/大厅青绿等当前界面背景 */
+  function applyPeek(on, skipStore) {
+    peeking = !!on;
+    document.body.classList.toggle('gallery-bg-peek', peeking);
+    document.documentElement.classList.toggle('gallery-bg-peek', peeking);
+    if (peeking) {
+      const saved = savedImage();
+      if (saved && saved.url) applyBackground(saved.url);
+    }
+    syncPeekButton();
+    if (!skipStore) {
+      try {
+        localStorage.setItem(PEEK_KEY, peeking ? '1' : '0');
+      } catch (e) {}
+    }
+  }
+
+  function togglePeek() {
+    if (!peeking) {
+      const saved = savedImage();
+      if (!saved || !saved.url) {
+        alert('请先在图库中选择并「设为壁纸」');
+        return;
+      }
+      applyPeek(true);
+    } else {
+      applyPeek(false);
     }
   }
 
@@ -94,26 +141,27 @@
   }
 
   function builtinImages() {
+    // 与 public/backgrounds 盘上文件名一致；name 为展示名
     const files = [
-      '烧烤-掌中宝.jpg',
-      '烧烤-烤橘子.jpg',
-      '烧烤-烤橘子2.jpg',
-      '烧烤-烤肠.jpg',
-      '烧烤.jpg',
-      '配置山-合影.jpg',
-      '配置山-明媚.jpg',
-      '配置山-明媚2.jpg',
-      '配置山-明媚3.jpg',
-      '配置山-雨云.jpg',
-      '配置山-雨云2.jpg',
-      '配置山-黄昏.jpg',
-      '配置山-黄昏2.jpg',
+      { file: 'bg-shaokao-zhangzhongbao.jpg', name: '烧烤-掌中宝' },
+      { file: 'bg-shaokao-kaojuzi.jpg', name: '烧烤-烤橘子' },
+      { file: 'bg-shaokao-kaojuzi-2.jpg', name: '烧烤-烤橘子2' },
+      { file: 'bg-shaokao-kaochang.jpg', name: '烧烤-烤肠' },
+      { file: 'bg-shaokao.jpg', name: '烧烤' },
+      { file: 'bg-peizhishan-heying.jpg', name: '配置山-合影' },
+      { file: 'bg-peizhishan-mingmei.jpg', name: '配置山-明媚' },
+      { file: 'bg-peizhishan-mingmei-2.jpg', name: '配置山-明媚2' },
+      { file: 'bg-peizhishan-mingmei-3.jpg', name: '配置山-明媚3' },
+      { file: 'bg-peizhishan-yuyun.jpg', name: '配置山-雨云' },
+      { file: 'bg-peizhishan-yuyun-2.jpg', name: '配置山-雨云2' },
+      { file: 'bg-peizhishan-huanghun.jpg', name: '配置山-黄昏' },
+      { file: 'bg-peizhishan-huanghun-2.jpg', name: '配置山-黄昏2' },
     ];
-    return files.map(function (file) {
+    return files.map(function (item) {
       return {
-        name: file.replace(/\.[^.]+$/, ''),
-        file: file,
-        url: '/backgrounds/' + encodeURIComponent(file),
+        name: item.name,
+        file: item.file,
+        url: '/backgrounds/' + encodeURIComponent(item.file),
       };
     });
   }
@@ -169,6 +217,7 @@
     if (currentFile() === image.file) {
       localStorage.removeItem(STORAGE_KEY);
       applyBackground('');
+      applyPeek(false);
     }
     loadAndRender();
   }
@@ -234,27 +283,48 @@
   function ensureDom() {
     if (overlay) return;
 
+    let dock = document.getElementById('gallery-dock');
+    if (!dock) {
+      dock = document.createElement('div');
+      dock.id = 'gallery-dock';
+      dock.className = 'gallery-dock';
+      document.body.appendChild(dock);
+    }
+
+    bgToggleBtn = document.getElementById('btn-gallery-bg');
+    if (!bgToggleBtn) {
+      bgToggleBtn = document.createElement('button');
+      bgToggleBtn.type = 'button';
+      bgToggleBtn.id = 'btn-gallery-bg';
+      bgToggleBtn.className = 'gallery-dock-btn';
+      bgToggleBtn.textContent = '显示背景图';
+      dock.appendChild(bgToggleBtn);
+    }
+    bgToggleBtn.addEventListener('click', togglePeek);
+
     let fab = document.getElementById('btn-gallery');
     if (!fab) {
       fab = document.createElement('button');
       fab.type = 'button';
       fab.id = 'btn-gallery';
-      fab.className = 'gallery-fab';
+      fab.className = 'gallery-dock-btn gallery-dock-main';
       fab.textContent = '图库';
-      document.body.appendChild(fab);
+      dock.appendChild(fab);
     }
+    // 本地试玩顶栏已有 #btn-gallery 时，不改其样式，仅绑定打开
     fab.addEventListener('click', open);
+    syncPeekButton();
 
     overlay = document.createElement('div');
     overlay.id = 'gallery-overlay';
-    overlay.className = 'gallery-overlay';
+    overlay.className = 'gallery-overlay gallery-breeze';
     overlay.hidden = true;
     overlay.innerHTML =
       '<div class="gallery-panel">' +
       '<div class="gallery-head"><h2>背景图库</h2>' +
       '<div class="gallery-head-actions">' +
-      '<button type="button" class="btn btn-primary gallery-upload" id="btn-gallery-add">添加图片</button>' +
-      '<button type="button" class="btn btn-ghost" id="btn-gallery-close">关闭</button>' +
+      '<button type="button" class="btn-auth-main gallery-upload" id="btn-gallery-add">添加图片</button>' +
+      '<button type="button" class="btn-auth-local" id="btn-gallery-close">关闭</button>' +
       '</div></div>' +
       '<div id="gallery-grid" class="gallery-grid"></div></div>';
     overlay.addEventListener('click', function (ev) {
@@ -275,25 +345,25 @@
     });
 
     actionDialog = document.createElement('div');
-    actionDialog.className = 'gallery-overlay gallery-dialog';
+    actionDialog.className = 'gallery-overlay gallery-dialog gallery-breeze';
     actionDialog.hidden = true;
     actionDialog.innerHTML = '<div class="gallery-dialog-panel"><img class="gallery-action-preview" alt="" />' +
       '<h3 class="gallery-action-title"></h3><div class="gallery-dialog-actions">' +
-      '<button class="btn btn-primary" id="btn-gallery-wallpaper">设为壁纸</button>' +
-      '<button class="btn" id="btn-gallery-avatar">设为头像</button>' +
-      '<button class="btn btn-danger" id="btn-gallery-delete">删除</button>' +
-      '<button class="btn btn-ghost" data-close>取消</button></div></div>';
+      '<button type="button" class="btn-auth-main" id="btn-gallery-wallpaper">设为壁纸</button>' +
+      '<button type="button" class="btn-breeze-outline" id="btn-gallery-avatar">设为头像</button>' +
+      '<button type="button" class="btn-breeze-outline gallery-btn-danger" id="btn-gallery-delete">删除</button>' +
+      '<button type="button" class="btn-auth-local" data-close>取消</button></div></div>';
     document.body.appendChild(actionDialog);
     actionDialog.querySelector('[data-close]').onclick = function () { actionDialog.hidden = true; };
 
     uploadDialog = document.createElement('div');
-    uploadDialog.className = 'gallery-overlay gallery-dialog';
+    uploadDialog.className = 'gallery-overlay gallery-dialog gallery-breeze';
     uploadDialog.hidden = true;
     uploadDialog.innerHTML = '<form class="gallery-dialog-panel" id="gallery-upload-form"><h3>添加图片</h3>' +
       '<label class="gallery-field">图片名称<input id="gallery-name" maxlength="30" required placeholder="请输入图片名称" /></label>' +
       '<label class="gallery-field">选择图片<input id="gallery-file" type="file" required accept="image/jpeg,image/png,image/gif,image/webp" /></label>' +
-      '<div class="gallery-dialog-actions"><button class="btn btn-primary" type="submit">上传</button>' +
-      '<button class="btn btn-ghost" type="button" data-close>取消</button></div></form>';
+      '<div class="gallery-dialog-actions"><button class="btn-auth-main" type="submit">上传</button>' +
+      '<button class="btn-auth-local" type="button" data-close>取消</button></div></form>';
     document.body.appendChild(uploadDialog);
     uploadDialog.querySelector('[data-close]').onclick = function () { uploadDialog.hidden = true; };
     uploadDialog.querySelector('form').onsubmit = function (ev) {

@@ -151,7 +151,7 @@ public class RoomService {
 		if (room.getStatus() == RoomStatus.PLAYING) {
 			return RoomResult.fail("游戏已开始");
 		}
-		List<String> names = room.getPlayers().stream().map(Seat::getUsername).toList();
+		List<String> names = room.getPlayers().stream().map(Seat::displayName).toList();
 		List<Integer> prevScores = room.getGame() != null && room.getGame().getPhase() == GamePhase.SETTLED
 				? room.getGame().getPlayers().stream().map(GamePlayer::getScore).toList()
 				: List.of(0, 0, 0, 0);
@@ -177,7 +177,7 @@ public class RoomService {
 			return RoomResult.fail("人数不足");
 		}
 		notifySettled(room);
-		List<String> names = room.getPlayers().stream().map(Seat::getUsername).toList();
+		List<String> names = room.getPlayers().stream().map(Seat::displayName).toList();
 		room.setGame(engine.nextRound(room.getGame(), names));
 		room.setStatus(RoomStatus.PLAYING);
 		room.setGameStartedAt(System.currentTimeMillis());
@@ -240,7 +240,7 @@ public class RoomService {
 		return RoomResult.ok(room);
 	}
 
-	public RoomResult giveDrawCards(String userId, List<String> cardIds) {
+	public RoomResult devourDraw(String userId) {
 		Room room = requirePlaying(userId);
 		if (room == null) {
 			return RoomResult.fail("对局未开始");
@@ -249,7 +249,28 @@ public class RoomService {
 		if (seat < 0) {
 			return RoomResult.fail("座位无效");
 		}
-		EngineResult result = engine.giveDrawCards(room.getGame(), seat, cardIds == null ? List.of() : cardIds);
+		EngineResult result = engine.devourDraw(room.getGame(), seat);
+		if (!result.isOk()) {
+			return RoomResult.fail(result.getReason());
+		}
+		room.setGame(result.getState());
+		return RoomResult.ok(room);
+	}
+
+	public RoomResult giveDrawCards(String userId, List<String> cardIds) {
+		return giveDrawCards(userId, cardIds, null);
+	}
+
+	public RoomResult giveDrawCards(String userId, List<String> cardIds, Integer targetSeat) {
+		Room room = requirePlaying(userId);
+		if (room == null) {
+			return RoomResult.fail("对局未开始");
+		}
+		int seat = room.seatOf(userId);
+		if (seat < 0) {
+			return RoomResult.fail("座位无效");
+		}
+		EngineResult result = engine.giveDrawCards(room.getGame(), seat, cardIds == null ? List.of() : cardIds, targetSeat);
 		if (!result.isOk()) {
 			return RoomResult.fail(result.getReason());
 		}
@@ -282,10 +303,10 @@ public class RoomService {
 		if (p == null) {
 			return RoomResult.fail("座位无效");
 		}
-		item.setBy(p.getUsername());
+		item.setBy(p.displayName());
 		room.setBackground(item);
 		if (room.getGame() != null) {
-			engine.addBackgroundLog(room.getGame(), p.getSeat(), p.getUsername(), item.getName());
+			engine.addBackgroundLog(room.getGame(), p.getSeat(), p.displayName(), item.getName());
 		}
 		return RoomResult.ok(room);
 	}
@@ -341,6 +362,7 @@ public class RoomService {
 			RoomPublicView.SeatView s = new RoomPublicView.SeatView();
 			s.setUserId(p.getUserId());
 			s.setUsername(p.getUsername());
+			s.setNickname(p.getNickname());
 			s.setAvatar(p.getAvatar());
 			s.setSeat(p.getSeat());
 			s.setOnline(p.isOnline());
@@ -432,6 +454,7 @@ public class RoomService {
 		boolean showGives = "showGive".equals(d.getStep());
 		DrawView view = new DrawView();
 		view.step = d.getStep();
+		view.mode = d.getMode();
 		view.uniqueTargets = d.isUniqueTargets();
 		view.gainers = d.getGainers();
 		view.losers = d.getLosers();
@@ -444,6 +467,14 @@ public class RoomService {
 		view.myAmount = gainer == null ? 0 : gainer.getAmount();
 		view.myPick = gainer == null ? null : d.pickOf(seat);
 		view.myGiveDone = gainer != null && d.giveOf(seat) != null;
+		view.myGiveChunk = view.myAmount;
+		view.remainingTargets = List.of();
+		if (d.isDevour() && gainer != null) {
+			List<DrawParty> rem = d.remainingGiveLosers(seat);
+			view.remainingTargets = rem.stream().map(DrawParty::getSeat).toList();
+			view.myGiveChunk = d.giveChunkSize(seat);
+			view.myGiveDone = rem.isEmpty();
+		}
 		return view;
 	}
 
@@ -477,10 +508,37 @@ public class RoomService {
 		Seat s = new Seat();
 		s.setUserId(user.getUserId());
 		s.setUsername(user.getUsername());
+		s.setNickname(user.getNickname());
 		s.setAvatar(user.getAvatar());
 		s.setSeat(seatIndex);
 		s.setOnline(true);
 		return s;
+	}
+
+	/** 资料变更后同步房间座位展示信息 */
+	public Room refreshPlayerProfile(String userId, String username, String nickname, String avatar) {
+		Room room = getRoomByUser(userId);
+		if (room == null) {
+			return null;
+		}
+		Seat p = findSeat(room, userId);
+		if (p == null) {
+			return null;
+		}
+		if (username != null && !username.isBlank()) {
+			p.setUsername(username);
+		}
+		if (nickname != null) {
+			p.setNickname(nickname);
+		}
+		if (avatar != null && !avatar.isBlank()) {
+			p.setAvatar(avatar);
+		}
+		if (room.getGame() != null && room.getGame().getPlayers() != null
+				&& p.getSeat() >= 0 && p.getSeat() < room.getGame().getPlayers().size()) {
+			room.getGame().getPlayers().get(p.getSeat()).setName(p.displayName());
+		}
+		return room;
 	}
 
 	private String generatePassword() {
@@ -526,6 +584,7 @@ public class RoomService {
 
 	public static class DrawView {
 		public String step;
+		public String mode;
 		public boolean uniqueTargets;
 		public List<DrawParty> gainers;
 		public List<DrawParty> losers;
@@ -536,8 +595,10 @@ public class RoomService {
 		public Long revealUntil;
 		public boolean isGainer;
 		public int myAmount;
+		public int myGiveChunk;
 		public Integer myPick;
 		public boolean myGiveDone;
+		public List<Integer> remainingTargets;
 	}
 
 	public static class PlayerView {

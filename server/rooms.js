@@ -37,6 +37,7 @@ function roomPublic(room, viewerUserId) {
     players: room.players.map((p) => ({
       userId: p.userId,
       username: p.username,
+      nickname: p.nickname || '',
       avatar: p.avatar || '/avatars/preset-1.svg',
       seat: p.seat,
       online: p.online,
@@ -47,6 +48,12 @@ function roomPublic(room, viewerUserId) {
     maxPlayers: MAX_PLAYERS,
     background: room.background || null,
   };
+}
+
+/** 座位展示名：昵称优先 */
+function seatDisplayName(p) {
+  const nick = String((p && p.nickname) || '').trim();
+  return nick || (p && p.username) || '';
 }
 
 /**
@@ -115,8 +122,18 @@ function drawView(g, seat) {
   });
   const showTakes = d.step === 'showTake' || d.step === 'give' || d.step === 'showGive';
   const showGives = d.step === 'showGive';
+  const devour = d.mode === 'devour';
+  let remainingTargets = [];
+  let myGiveChunk = gainer ? gainer.amount : 0;
+  let myGiveDone = !!(gainer && mapGet(d.gives, seat));
+  if (devour && gainer) {
+    remainingTargets = Game.remainingGiveLosers(d, seat).map((l) => l.seat);
+    myGiveChunk = Game.giveChunkSize(d, seat);
+    myGiveDone = remainingTargets.length === 0;
+  }
   return {
     step: d.step,
+    mode: d.mode || 'normal',
     uniqueTargets: !!d.uniqueTargets,
     gainers: d.gainers,
     losers: d.losers,
@@ -127,8 +144,10 @@ function drawView(g, seat) {
     revealUntil: d.revealUntil || null,
     isGainer: !!gainer,
     myAmount: gainer ? gainer.amount : 0,
+    myGiveChunk: myGiveChunk,
     myPick: gainer ? mapGet(d.picks, seat) : null,
-    myGiveDone: !!(gainer && mapGet(d.gives, seat)),
+    myGiveDone: myGiveDone,
+    remainingTargets: remainingTargets,
   };
 }
 
@@ -147,6 +166,7 @@ function createRoom(user) {
       {
         userId: user.userId,
         username: user.username,
+        nickname: user.nickname || '',
         avatar: user.avatar || '/avatars/preset-1.svg',
         seat: 0,
         online: true,
@@ -195,6 +215,7 @@ function joinRoom(user, password) {
   room.players.push({
     userId: user.userId,
     username: user.username,
+    nickname: user.nickname || '',
     avatar: user.avatar || '/avatars/preset-1.svg',
     seat: room.players.length,
     online: true,
@@ -255,7 +276,7 @@ function startGame(userId) {
   }
   if (room.status === 'playing') return { ok: false, error: '游戏已开始' };
 
-  const names = room.players.map((p) => p.username);
+  const names = room.players.map((p) => seatDisplayName(p));
   const prevScores =
     room.game && room.game.phase === 'settled'
       ? room.game.players.map((p) => p.score)
@@ -277,7 +298,7 @@ function nextRound(userId) {
     return { ok: false, error: '人数不足' };
   }
 
-  const names = room.players.map((p) => p.username);
+  const names = room.players.map((p) => seatDisplayName(p));
   room.game = Game.nextRound(room.game, names);
   room.status = 'playing';
   return { ok: true, room };
@@ -319,12 +340,28 @@ function pickDrawTarget(userId, targetSeat) {
   return { ok: true, room };
 }
 
-function giveDrawCards(userId, cardIds) {
+function devourDraw(userId) {
   const room = getRoomByUser(userId);
   if (!room || !room.game) return { ok: false, error: '对局未开始' };
   const seat = room.players.findIndex((p) => p.userId === userId);
   if (seat < 0) return { ok: false, error: '座位无效' };
-  const result = Game.giveDrawCards(room.game, seat, cardIds || []);
+  const result = Game.devourDraw(room.game, seat);
+  if (!result.ok) return { ok: false, error: result.reason };
+  room.game = result.state;
+  return { ok: true, room };
+}
+
+function giveDrawCards(userId, cardIds, targetSeat) {
+  const room = getRoomByUser(userId);
+  if (!room || !room.game) return { ok: false, error: '对局未开始' };
+  const seat = room.players.findIndex((p) => p.userId === userId);
+  if (seat < 0) return { ok: false, error: '座位无效' };
+  const result = Game.giveDrawCards(
+    room.game,
+    seat,
+    cardIds || [],
+    targetSeat == null ? undefined : Number(targetSeat)
+  );
   if (!result.ok) return { ok: false, error: result.reason };
   room.game = result.state;
   return { ok: true, room };
@@ -351,11 +388,11 @@ function setBackground(userId, file) {
     name: item.name,
     file: item.file,
     url: item.url,
-    by: p.username,
+    by: seatDisplayName(p),
   };
 
   if (room.game) {
-    Game.addBackgroundLog(room.game, p.seat, p.username, item.name);
+    Game.addBackgroundLog(room.game, p.seat, seatDisplayName(p), item.name);
   }
 
   return { ok: true, room };
@@ -368,6 +405,22 @@ function bindSocket(userId, socketId) {
   if (p) {
     p.socketId = socketId;
     p.online = true;
+  }
+  return room;
+}
+
+/** 资料变更后同步房间座位展示信息 */
+function refreshPlayerProfile(userId, patch) {
+  const room = getRoomByUser(userId);
+  if (!room) return null;
+  const p = room.players.find((x) => x.userId === userId);
+  if (!p) return null;
+  if (patch.nickname != null) p.nickname = String(patch.nickname || '').trim();
+  if (patch.avatar) p.avatar = patch.avatar;
+  if (patch.username) p.username = patch.username;
+  // 对局中同步引擎展示名（日志/座位旁）
+  if (room.game && room.game.players && room.game.players[p.seat]) {
+    room.game.players[p.seat].name = seatDisplayName(p);
   }
   return room;
 }
@@ -396,11 +449,13 @@ module.exports = {
   playCards,
   passTurn,
   pickDrawTarget,
+  devourDraw,
   giveDrawCards,
   advanceDraw,
   setBackground,
   roomPublic,
   gameViewFor,
   bindSocket,
+  refreshPlayerProfile,
   setOffline,
 };

@@ -24,6 +24,8 @@
   let customAvatarFile = null;
   let lastEventCount = 0;
   let lastAnimatedPlayKey = '';
+  /** 吞噬还牌：已点「还牌」、等待点选对象 */
+  let pendingGivePick = false;
 
   const $ = (id) => document.getElementById(id);
 
@@ -137,20 +139,87 @@
     }
   }
 
+  function giveNeedAmount(d) {
+    if (!d) return 0;
+    if (d.mode === 'devour') return d.myGiveChunk != null ? d.myGiveChunk : d.myAmount;
+    return d.myAmount || 0;
+  }
+
   function renderDrawOverlay() {
     const overlay = $('draw-overlay');
     if (!overlay) return;
     const d = game && game.draw;
-    if (!game || game.phase !== 'draw' || !d || d.step === 'give' || d.step === 'done') {
+    const devourBtn = $('btn-draw-devour');
+    if (devourBtn) devourBtn.hidden = true;
+
+    const showGivePick =
+      pendingGivePick &&
+      game &&
+      game.phase === 'draw' &&
+      d &&
+      d.step === 'give' &&
+      d.mode === 'devour' &&
+      d.isGainer &&
+      !d.myGiveDone;
+
+    if (!game || game.phase !== 'draw' || !d || d.step === 'done') {
       overlay.hidden = true;
       return;
     }
+    if (d.step === 'give' && !showGivePick) {
+      overlay.hidden = true;
+      return;
+    }
+
     overlay.hidden = false;
     $('draw-targets').innerHTML = '';
     $('draw-cards').innerHTML = '';
     $('draw-timer').textContent = '';
 
-    if (d.step === 'pick') {
+    if (d.step === 'devour') {
+      const g = (d.gainers || [])[0];
+      $('draw-title').textContent = '吞噬' + (g ? g.amount : d.myAmount) + '张牌';
+      $('draw-desc').textContent = d.isGainer
+        ? '点击吞噬，从各减分者手中按失分张数平分抽取'
+        : '等待加分者吞噬';
+      if (devourBtn) {
+        devourBtn.hidden = !d.isGainer;
+        devourBtn.textContent = '吞噬';
+      }
+    } else if (showGivePick) {
+      const need = giveNeedAmount(d);
+      const remSeats = d.remainingTargets || [];
+      $('draw-title').textContent = '还牌：选择对象';
+      $('draw-desc').textContent =
+        '已选 ' + need + ' 张，请选择一名减分者归还（还需还 ' + remSeats.length + ' 人）';
+      (d.losers || []).forEach((loser) => {
+        if (remSeats.indexOf(loser.seat) < 0) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'draw-target';
+        const p = game.players[loser.seat];
+        btn.innerHTML =
+          avatarImg(p.avatar, '', p.name) +
+          '<span>' +
+          p.name +
+          '</span><span class="meta">归还 ' +
+          loser.amount +
+          ' 张</span>';
+        btn.addEventListener('click', async () => {
+          const result = await emit('game:drawGive', {
+            cardIds: selectedIds(),
+            targetSeat: loser.seat,
+          });
+          if (!result.ok) {
+            $('hint').textContent = result.error || '还牌失败';
+            return;
+          }
+          clearSelected();
+          pendingGivePick = false;
+        });
+        $('draw-targets').appendChild(btn);
+      });
+    } else if (d.step === 'pick') {
       $('draw-title').textContent = '抽牌：选择对象';
       if (d.isGainer && d.myPick == null) {
         $('draw-desc').textContent =
@@ -397,6 +466,10 @@
       $('btn-auth').textContent = authMode === 'login' ? '登录' : '注册';
       $('avatar-picker').hidden = authMode !== 'register';
       $('auth-nickname-wrap').hidden = authMode !== 'register';
+      if ($('screen-auth')) {
+        $('screen-auth').classList.toggle('is-register', authMode === 'register');
+      }
+      if (authMode === 'login' && $('auth-nickname')) $('auth-nickname').value = '';
       if (authMode === 'register') showAuthLetterPreview();
       setError($('auth-error'), '');
     });
@@ -409,8 +482,15 @@
     $('auth-nickname').addEventListener('input', refreshAuthLetterPreview);
   }
 
+  if ($('btn-avatar-pick') && $('auth-avatar-file')) {
+    $('btn-avatar-pick').addEventListener('click', () => {
+      $('auth-avatar-file').click();
+    });
+  }
+
   if ($('btn-clear-avatar')) {
-    $('btn-clear-avatar').addEventListener('click', () => {
+    $('btn-clear-avatar').addEventListener('click', (e) => {
+      e.stopPropagation();
       showAuthLetterPreview();
     });
   }
@@ -532,6 +612,17 @@
     showScreen('room');
   });
 
+  function playerShownName(p) {
+    // 自己优先用本地最新昵称；他人用房间下发的 nickname
+    if (p && p.isMe && user) {
+      const mine = String(user.nickname || '').trim();
+      if (mine) return mine;
+    }
+    const nick = p && String(p.nickname || '').trim();
+    if (nick) return nick;
+    return (p && (p.username || p.name)) || '';
+  }
+
   // —— 房间 ——
   function renderRoom() {
     if (!room) return;
@@ -549,11 +640,12 @@
         if (p.isHost) tags.push('房主');
         if (p.isMe) tags.push('我');
         if (!p.online) tags.push('离线');
+        const shown = playerShownName(p);
         li.innerHTML =
           '<span class="seat-player">' +
-          avatarImg(p.avatar, '', p.username || p.name) +
+          avatarImg(p.avatar, '', shown) +
           '<span>' +
-          p.username +
+          shown +
           '</span></span><span class="tag">' +
           tags.join(' · ') +
           '</span>';
@@ -661,6 +753,9 @@
     div.className = 'card';
     if (opts.faceDown) {
       div.classList.add('back');
+      div.innerHTML = PokerCards.cardBackHtml
+        ? PokerCards.cardBackHtml()
+        : '<img src="/cards/back.svg" alt="" draggable="false" />';
       return div;
     }
     const suit = SUITS[card.suit];
@@ -680,6 +775,7 @@
     const d = game.draw;
     const canGive =
       game.phase === 'draw' && d && d.step === 'give' && d.isGainer && !d.myGiveDone;
+    const need = giveNeedAmount(d);
     const ids = selectedIds();
     const hand = $('seat-bottom') && $('seat-bottom').querySelector('.hand');
     if (hand) {
@@ -696,9 +792,9 @@
         ? previewText(ids)
         : '等待 ' + game.players[game.currentPlayer].name + ' 出牌';
     } else if (canGive) {
-      $('btn-draw-give').disabled = ids.length !== d.myAmount;
+      $('btn-draw-give').disabled = ids.length !== need;
       if ($('btn-suggest')) $('btn-suggest').disabled = true;
-      $('hint').textContent = '已选 ' + ids.length + ' / ' + d.myAmount + ' 张还牌';
+      $('hint').textContent = '已选 ' + ids.length + ' / ' + need + ' 张还牌';
     }
   }
 
@@ -740,15 +836,11 @@
     return null;
   }
 
-  /** 全场最近一次「出牌」的座位；过牌不影响，上一手保持大牌 */
+  /** 全场最近一次「出牌」的座位；过牌不影响，上一手保持大牌（与本地试玩一致） */
   function latestPlaySeat() {
     const events = (game && game.events) || [];
-    // 过牌会触发整桌重绘，但不应让上一手牌再次播放“落牌”动画。
-    // 只要最新一条行动事件是过牌，本次渲染就不标记 fresh。
     for (let i = events.length - 1; i >= 0; i--) {
-      if (events[i].kind === 'play' || events[i].kind === 'pass') {
-        return events[i].kind === 'play' ? events[i].seat : null;
-      }
+      if (events[i].kind === 'play') return events[i].seat;
     }
     return null;
   }
@@ -800,22 +892,17 @@
       if (!el) return;
       el.innerHTML = '';
       const last = lastTableAction(sides[side]);
-      const fresh = !!(
-        last &&
-        last.kind === 'play' &&
-        sides[side] === freshSeat &&
-        latestPlayKey &&
-        latestPlayKey !== lastAnimatedPlayKey
-      );
+      // 最新出牌座位始终保持大牌；过牌时加 stable 避免重播落牌动画
+      const isLatestPlay = !!(last && last.kind === 'play' && sides[side] === freshSeat);
       const playEl = renderSeatPlay(last, {
-        fresh: fresh,
-        stable: latestActionKind === 'pass',
+        fresh: isLatestPlay,
+        stable: latestActionKind === 'pass' || (isLatestPlay && latestPlayKey === lastAnimatedPlayKey),
       });
       if (playEl && playEl.childNodes.length) {
         el.appendChild(playEl);
       }
     });
-    if (latestPlayKey) lastAnimatedPlayKey = latestPlayKey;
+    if (latestPlayKey && latestActionKind === 'play') lastAnimatedPlayKey = latestPlayKey;
   }
 
   function renderLogItem(ev) {
@@ -908,7 +995,12 @@
     info.innerHTML =
       '<div class="avatar-wrap">' +
       '<div class="avatar-box">' +
-      avatarImg(player.avatar, '', player.name) +
+      avatarImg(player.avatar, '', playerShownName({
+        isMe: player.isMe,
+        nickname: player.nickname,
+        username: player.name,
+        name: player.name,
+      })) +
       (thinking
         ? '<div class="think-bubble" aria-hidden="true"><span></span><span></span><span></span></div>'
         : '') +
@@ -916,7 +1008,12 @@
       goodsTagHtml(player.goodsMark) +
       '</div>' +
       '<div><div class="pname">' +
-      player.name +
+      playerShownName({
+        isMe: player.isMe,
+        nickname: player.nickname,
+        username: player.name,
+        name: player.name,
+      }) +
       (player.isMe ? '（我）' : '') +
       '</div><div class="meta">' +
       meta +
@@ -980,6 +1077,9 @@
     const d = game.draw;
     const canGive =
       game.phase === 'draw' && d && d.step === 'give' && d.isGainer && !d.myGiveDone;
+    const need = giveNeedAmount(d);
+    const gameScreen = $('screen-game') || document.querySelector('.screen-game');
+    if (gameScreen) gameScreen.classList.toggle('draw-give-select', !!canGive);
 
     if (game.phase === 'settled') {
       $('turn-info').textContent = '本局已结束';
@@ -988,23 +1088,32 @@
       $('btn-pass').disabled = true;
       if ($('btn-suggest')) $('btn-suggest').disabled = true;
       $('btn-draw-give').hidden = true;
+      pendingGivePick = false;
     } else if (game.phase === 'draw') {
       $('btn-next').hidden = true;
       $('btn-play').disabled = true;
       $('btn-pass').disabled = true;
       if ($('btn-suggest')) $('btn-suggest').disabled = true;
       if (canGive) {
-        const targetSeat = d.myPick;
         $('turn-info').textContent =
-          '还牌 · 请选出 ' +
-          d.myAmount +
-          ' 张还给 ' +
-          game.players[targetSeat].name;
+          d.mode === 'devour'
+            ? '还牌 · 请选出 ' + need + ' 张，点还牌后再选对象'
+            : '还牌 · 请选出 ' +
+              need +
+              ' 张还给 ' +
+              (game.players[d.myPick] ? game.players[d.myPick].name : '');
         $('btn-draw-give').hidden = false;
-        $('btn-draw-give').disabled = selectedIds().length !== d.myAmount;
+        $('btn-draw-give').disabled = selectedIds().length !== need;
       } else {
-        $('turn-info').textContent = '第 ' + game.round + ' 局 · 抽牌阶段';
+        if (d && d.step === 'devour') {
+          $('turn-info').textContent = d.isGainer
+            ? '吞噬 ' + d.myAmount + ' 张牌'
+            : '第 ' + game.round + ' 局 · 等待吞噬';
+        } else {
+          $('turn-info').textContent = '第 ' + game.round + ' 局 · 抽牌阶段';
+        }
         $('btn-draw-give').hidden = true;
+        if (!d || d.step !== 'give') pendingGivePick = false;
       }
     } else {
       const cur = game.players[game.currentPlayer];
@@ -1073,7 +1182,7 @@
         : '等待 ' + game.players[game.currentPlayer].name + ' 出牌';
     } else if (canGive) {
       $('hint').textContent =
-        '已选 ' + selectedIds().length + ' / ' + d.myAmount + ' 张还牌';
+        '已选 ' + selectedIds().length + ' / ' + need + ' 张还牌';
     } else if (game.phase === 'draw') {
       $('hint').textContent = d && d.isGainer && d.myGiveDone ? '已还牌，等待其他人' : '抽牌进行中';
     } else {
@@ -1109,13 +1218,35 @@
   });
 
   $('btn-draw-give').addEventListener('click', async () => {
-    const result = await emit('game:drawGive', { cardIds: selectedIds() });
+    const d = game && game.draw;
+    const need = giveNeedAmount(d);
+    const ids = selectedIds();
+    if (ids.length !== need) {
+      $('hint').textContent = '请选择 ' + need + ' 张还牌';
+      return;
+    }
+    if (d && d.mode === 'devour') {
+      pendingGivePick = true;
+      renderDrawOverlay();
+      $('hint').textContent = '请选择还牌对象';
+      return;
+    }
+    const result = await emit('game:drawGive', { cardIds: ids });
     if (!result.ok) {
       $('hint').textContent = result.error || '还牌失败';
       return;
     }
     clearSelected();
   });
+
+  if ($('btn-draw-devour')) {
+    $('btn-draw-devour').addEventListener('click', async () => {
+      const result = await emit('game:drawDevour');
+      if (!result.ok) {
+        $('hint').textContent = result.error || '吞噬失败';
+      }
+    });
+  }
 
   $('btn-play').addEventListener('click', async () => {
     const result = await emit('game:play', { cardIds: selectedIds() });

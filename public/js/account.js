@@ -1,5 +1,5 @@
 /**
- * 用户中心：资料 / 生涯 / 战绩 / 成就
+ * 用户中心：资料 / 生涯 / 战绩 / 成就（calm-breeze 风格）
  */
 (function (global) {
   let overlay = null;
@@ -8,6 +8,7 @@
   };
   let onUser = null;
   let activeTab = 'profile';
+  let previewObjectUrl = '';
 
   function token() {
     return typeof getToken === 'function' ? getToken() || '' : '';
@@ -64,6 +65,15 @@
     el.classList.toggle('form-error', !!isError);
   }
 
+  function clearPreviewObjectUrl() {
+    if (previewObjectUrl) {
+      try {
+        URL.revokeObjectURL(previewObjectUrl);
+      } catch (e) {}
+      previewObjectUrl = '';
+    }
+  }
+
   async function loadProfile() {
     const info = await api('/api/user/info');
     if (!info.ok || !info.user) {
@@ -76,9 +86,16 @@
     const name = overlay.querySelector('#account-username');
     const created = overlay.querySelector('#account-created');
     const preview = overlay.querySelector('#account-avatar-preview');
+    const fileInput = overlay.querySelector('#account-avatar-file');
     if (nick) nick.value = u.nickname || '';
     if (name) name.textContent = u.username || '';
-    if (created) created.textContent = u.createTime ? '注册时间 ' + u.createTime.replace('T', ' ').slice(0, 16) : '';
+    if (created) {
+      created.textContent = u.createTime
+        ? '注册时间 ' + u.createTime.replace('T', ' ').slice(0, 16)
+        : '';
+    }
+    clearPreviewObjectUrl();
+    if (fileInput) fileInput.value = '';
     if (preview) preview.src = u.avatar || '/avatars/preset-1.svg';
     if (typeof onUser === 'function') onUser(u);
   }
@@ -188,27 +205,37 @@
     if (overlay) return;
     overlay = document.createElement('div');
     overlay.id = 'account-overlay';
-    overlay.className = 'gallery-overlay';
+    overlay.className = 'gallery-overlay gallery-breeze account-breeze';
     overlay.hidden = true;
     overlay.innerHTML =
       '<div class="gallery-panel account-panel">' +
-      '<div class="gallery-head"><h2>我的</h2>' +
-      '<button type="button" class="btn btn-ghost" id="btn-account-close">关闭</button></div>' +
-      '<div class="account-tabs">' +
+      '<div class="gallery-head">' +
+      '<h2>我的</h2>' +
+      '<button type="button" class="btn-auth-local" id="btn-account-close">关闭</button>' +
+      '</div>' +
+      '<div class="account-tabs" role="tablist">' +
       '<button type="button" class="tab active" data-account-tab="profile">资料</button>' +
       '<button type="button" class="tab" data-account-tab="career">生涯</button>' +
       '<button type="button" class="tab" data-account-tab="records">战绩</button>' +
       '<button type="button" class="tab" data-account-tab="achievements">成就</button>' +
       '</div>' +
-      '<div data-account-pane="profile">' +
+      '<div data-account-pane="profile" class="account-pane-profile">' +
       '<div class="account-profile">' +
-      '<img id="account-avatar-preview" class="avatar avatar-lg" src="/avatars/preset-1.svg" alt="" />' +
-      '<div><div id="account-username" class="account-username"></div>' +
-      '<div id="account-created" class="account-created"></div></div></div>' +
-      '<label>昵称<input id="account-nickname" maxlength="32" /></label>' +
-      '<label class="avatar-upload">更换头像<input id="account-avatar-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" /></label>' +
+      '<button type="button" id="btn-account-avatar" class="account-avatar-hit" title="点击更换头像">' +
+      '<img id="account-avatar-preview" class="avatar avatar-lg" src="/avatars/preset-1.svg" alt="头像" />' +
+      '<span class="account-avatar-hint">点击更换</span>' +
+      '</button>' +
+      '<input id="account-avatar-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" tabindex="-1" />' +
+      '<div class="account-profile-meta">' +
+      '<div id="account-username" class="account-username"></div>' +
+      '<div id="account-created" class="account-created"></div>' +
+      '</div></div>' +
+      '<label class="account-field">' +
+      '<span class="sr-only">昵称</span>' +
+      '<input id="account-nickname" maxlength="32" placeholder="昵称（可选）" />' +
+      '</label>' +
       '<p id="account-profile-error" class="form-error" hidden></p>' +
-      '<button type="button" class="btn btn-primary" id="btn-account-save">保存资料</button>' +
+      '<button type="button" class="btn-auth-main" id="btn-account-save">保存资料</button>' +
       '</div>' +
       '<div data-account-pane="career" hidden></div>' +
       '<div data-account-pane="records" hidden></div>' +
@@ -225,6 +252,26 @@
       });
     });
     overlay.querySelector('#btn-account-save').addEventListener('click', saveProfile);
+
+    const hit = overlay.querySelector('#btn-account-avatar');
+    const fileInput = overlay.querySelector('#account-avatar-file');
+    hit.addEventListener('click', function () {
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', function () {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        setStatus('#account-profile-error', '头像不能超过 2MB', true);
+        fileInput.value = '';
+        return;
+      }
+      clearPreviewObjectUrl();
+      previewObjectUrl = URL.createObjectURL(file);
+      const preview = overlay.querySelector('#account-avatar-preview');
+      if (preview) preview.src = previewObjectUrl;
+      setStatus('#account-profile-error', '已选择新头像，点「保存资料」生效');
+    });
   }
 
   async function saveProfile() {
@@ -238,7 +285,7 @@
         return;
       }
       const form = new FormData();
-      if (nick) form.append('nickname', nick);
+      form.append('nickname', nick);
       form.append('avatarFile', file);
       result = await api('/api/user/profile', form, 'POST');
     } else {
@@ -249,6 +296,7 @@
       return;
     }
     overlay.querySelector('#account-avatar-file').value = '';
+    clearPreviewObjectUrl();
     setStatus('#account-profile-error', '已保存');
     if (result.token) {
       try {

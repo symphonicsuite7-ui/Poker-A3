@@ -52,7 +52,13 @@ public class GameWsHandler extends TextWebSocketHandler {
 
 	@Override
 	protected void handleTextMessage(WebSocketSession session, TextMessage message) {
-		RoomUser user = hub.userOf(session);
+		// 每次消息从库刷新昵称，避免改资料后仍用连接时缓存
+		RoomUser user = resolveUser(session);
+		if (user == null) {
+			user = hub.userOf(session);
+		} else {
+			hub.register(session, user);
+		}
 		if (user == null) {
 			hub.sendErrorAck(session, null, "未登录");
 			return;
@@ -70,6 +76,11 @@ public class GameWsHandler extends TextWebSocketHandler {
 		}
 		DispatchResult result;
 		synchronized (rooms) {
+			String ev = envelope.getEvent();
+			if ("room:sync".equals(ev) || "room:create".equals(ev) || "room:join".equals(ev)) {
+				rooms.refreshPlayerProfile(user.getUserId(), user.getUsername(), user.getNickname(),
+						user.getAvatar());
+			}
 			result = dispatcher.handle(user, envelope.getEvent(), envelope.getData());
 			if (result.isOk() && result.isBind() && result.getRoom() != null) {
 				rooms.bindSocket(user.getUserId(), session.getId());
@@ -113,7 +124,8 @@ public class GameWsHandler extends TextWebSocketHandler {
 			if (user == null) {
 				return null;
 			}
-			return new RoomUser(String.valueOf(user.getId()), user.displayName(), user.getAvatar());
+			return new RoomUser(String.valueOf(user.getId()), user.getUsername(), user.getNickname(),
+					user.getAvatar());
 		}
 		return WsAuth.fromQuery(session);
 	}

@@ -9,87 +9,112 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <title>天子牌局：葵影</title>
   <link rel="stylesheet" href="/css/style.css?v=20260823-gallery" />
-  <link rel="stylesheet" href="/css/app.css" />
-  <link rel="stylesheet" href="/css/medieval.css" />
+  <link rel="stylesheet" href="/css/app.css?v=20260824-account-breeze" />
+  <link rel="stylesheet" href="/css/medieval.css?v=20260824-breeze-clear" />
 </head>
 <body>
-  <!-- 登录 / 注册 -->
+  <!-- 登录 / 注册：calm-breeze 氛围 -->
   <section id="screen-auth" class="screen screen-auth">
-    <div class="auth-card">
-      <div class="auth-brand">
-        <div class="auth-mark" aria-hidden="true">♠</div>
-        <h1>天子牌局：葵影</h1>
-        <p class="auth-sub">登录后创建或加入房间</p>
-      </div>
-      <div class="tabs" role="tablist">
-        <button type="button" class="tab active" data-tab="login">登录</button>
-        <button type="button" class="tab" data-tab="register">注册</button>
-      </div>
-      <form id="form-auth">
-        <div id="avatar-picker" class="avatar-picker" hidden>
-          <div class="avatar-picker-label">头像（可选上传；不上传则用用户名首字）</div>
-          <div class="avatar-preview-wrap">
-            <div id="avatar-letter" class="avatar avatar-lg avatar-letter" aria-hidden="true">?</div>
-            <img id="avatar-preview" class="avatar avatar-lg" alt="头像预览" hidden />
+    <ul class="auth-bubbles" aria-hidden="true">
+      <li></li><li></li><li></li><li></li><li></li>
+      <li></li><li></li><li></li><li></li><li></li>
+    </ul>
+    <div class="auth-panel">
+        <div class="auth-brand">
+          <h1>天子牌局：葵影</h1>
+          <p class="auth-sub">登录后创建或加入房间</p>
+        </div>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab active" data-tab="login">登录</button>
+          <button type="button" class="tab" data-tab="register">注册</button>
+        </div>
+        <form id="form-auth" class="auth-form">
+          <div id="avatar-picker" class="avatar-picker" hidden>
+            <div class="avatar-hit-wrap">
+              <button type="button" id="btn-avatar-pick" class="avatar-hit" title="点击上传头像">
+                <div id="avatar-letter" class="avatar avatar-lg avatar-letter" aria-hidden="true">?</div>
+                <img id="avatar-preview" class="avatar avatar-lg" alt="头像预览" hidden />
+              </button>
+              <button type="button" id="btn-clear-avatar" class="avatar-clear" hidden title="清除头像">×</button>
+            </div>
+            <input id="auth-avatar-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" tabindex="-1" />
           </div>
-          <label class="avatar-upload">
-            上传自己的图片
-            <input id="auth-avatar-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" />
+          <label id="auth-nickname-wrap" class="auth-field" hidden>
+            <span class="sr-only">昵称</span>
+            <input id="auth-nickname" maxlength="32" placeholder="昵称（可选）" />
           </label>
-          <button type="button" id="btn-clear-avatar" class="btn btn-ghost btn-clear-avatar" hidden>清除上传，改用首字</button>
-        </div>
-        <label>用户名<input id="auth-username" autocomplete="username" maxlength="16" required placeholder="请输入用户名" /></label>
-        <label id="auth-nickname-wrap" hidden>昵称<input id="auth-nickname" maxlength="32" placeholder="不填则与用户名相同" /></label>
-        <label>密码<input id="auth-password" type="password" autocomplete="current-password" maxlength="32" required placeholder="请输入密码" /></label>
-        <p id="auth-error" class="form-error" hidden></p>
-        <div class="auth-actions">
-          <button type="submit" class="btn btn-primary btn-block" id="btn-auth">登录</button>
-          <a class="btn btn-ghost btn-block auth-local-link" href="/local.html">本地试玩</a>
-        </div>
-      </form>
+          <label class="auth-field">
+            <span class="sr-only">用户名</span>
+            <input id="auth-username" autocomplete="username" maxlength="16" required placeholder="用户名" />
+          </label>
+          <label class="auth-field">
+            <span class="sr-only">密码</span>
+            <input id="auth-password" type="password" autocomplete="current-password" maxlength="32" required placeholder="密码" />
+          </label>
+          <p id="auth-error" class="form-error" hidden></p>
+          <div class="auth-actions">
+            <button type="submit" class="btn btn-auth-main" id="btn-auth">登录</button>
+            <a class="btn-auth-local" href="/local.html">本地试玩</a>
+          </div>
+        </form>
     </div>
   </section>
 
-  <!-- 大厅 -->
-  <section id="screen-lobby" class="screen" hidden>
-    <div class="panel">
-      <header class="panel-head">
+  <!-- 大厅：与登录页同一套 calm-breeze 风格 -->
+  <section id="screen-lobby" class="screen screen-lobby" hidden>
+    <ul class="auth-bubbles" aria-hidden="true">
+      <li></li><li></li><li></li><li></li><li></li>
+      <li></li><li></li><li></li><li></li><li></li>
+    </ul>
+    <div class="lobby-panel">
+      <div class="auth-brand">
         <h1>大厅</h1>
-        <div class="user-bar">
-          <span id="lobby-avatar" class="lobby-avatar-host"></span>
-          <span id="lobby-username"></span>
-          <button type="button" class="btn btn-ghost" id="btn-account">我的</button>
-          <button type="button" class="btn btn-ghost" id="btn-logout">退出登录</button>
-        </div>
-      </header>
+        <p class="auth-sub">创建或加入房间</p>
+      </div>
+      <div class="lobby-user">
+        <span id="lobby-avatar" class="lobby-avatar-host"></span>
+        <span id="lobby-username" class="lobby-username"></span>
+      </div>
       <div class="lobby-actions">
-        <button type="button" class="btn btn-primary btn-lg" id="btn-create-room">创建房间</button>
-        <div class="join-box">
-          <input id="join-password" placeholder="输入房间密码" maxlength="8" />
-          <button type="button" class="btn btn-primary" id="btn-join-room">加入房间</button>
-        </div>
+        <button type="button" class="btn-auth-main" id="btn-create-room">创建房间</button>
+        <label class="auth-field lobby-join-field">
+          <span class="sr-only">房间密码</span>
+          <input id="join-password" placeholder="输入房间密码" maxlength="8" autocomplete="off" />
+        </label>
+        <button type="button" class="btn-breeze-outline" id="btn-join-room">加入房间</button>
       </div>
       <p id="lobby-error" class="form-error" hidden></p>
+      <div class="lobby-footer">
+        <button type="button" class="btn-auth-local" id="btn-account">我的</button>
+        <button type="button" class="btn-auth-local" id="btn-logout">退出登录</button>
+      </div>
     </div>
   </section>
 
-  <!-- 房间等待 -->
-  <section id="screen-room" class="screen" hidden>
-    <div class="panel">
-      <header class="panel-head">
+  <!-- 房间等待：同一套 calm-breeze 风格 -->
+  <section id="screen-room" class="screen screen-room" hidden>
+    <ul class="auth-bubbles" aria-hidden="true">
+      <li></li><li></li><li></li><li></li><li></li>
+      <li></li><li></li><li></li><li></li><li></li>
+    </ul>
+    <div class="room-panel">
+      <div class="auth-brand">
         <h1>房间</h1>
-        <button type="button" class="btn btn-ghost" id="btn-leave-room">离开房间</button>
-      </header>
+        <p class="auth-sub">把密码发给好友即可加入</p>
+      </div>
       <div class="room-code-box">
-        <div class="label">房间密码（发给好友）</div>
+        <div class="label">房间密码</div>
         <div class="code" id="room-password">------</div>
-        <button type="button" class="btn" id="btn-copy-password">复制密码</button>
+        <button type="button" class="btn-breeze-outline" id="btn-copy-password">复制密码</button>
       </div>
       <ul class="seat-list" id="seat-list"></ul>
       <p class="room-tip" id="room-tip">等待玩家加入（0/4）</p>
       <p id="room-error" class="form-error" hidden></p>
       <div class="room-actions">
-        <button type="button" class="btn btn-primary btn-lg" id="btn-start" disabled>开始游戏</button>
+        <button type="button" class="btn-auth-main" id="btn-start" disabled>开始游戏</button>
+      </div>
+      <div class="lobby-footer">
+        <button type="button" class="btn-auth-local" id="btn-leave-room">离开房间</button>
       </div>
     </div>
   </section>
@@ -147,12 +172,15 @@
     </div>
   </section>
 
-  <div id="draw-overlay" class="draw-overlay" hidden>
+  <div id="draw-overlay" class="draw-overlay theme-medieval" hidden>
     <div class="draw-panel">
       <h2 id="draw-title">抽牌</h2>
       <p id="draw-desc" class="draw-desc"></p>
       <div id="draw-targets" class="draw-targets"></div>
       <div id="draw-cards" class="draw-card-groups"></div>
+      <div class="draw-actions">
+        <button type="button" id="btn-draw-devour" class="btn btn-primary" hidden>吞噬</button>
+      </div>
       <div id="draw-timer" class="draw-timer"></div>
     </div>
   </div>
@@ -160,10 +188,10 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/cards.js"></script>
   <script src="/js/rules.js"></script>
-  <script src="/js/gallery.js?v=20260823-gallery"></script>
-  <script src="/js/account.js"></script>
+  <script src="/js/gallery.js?v=20260824-gallery-breeze"></script>
+  <script src="/js/account.js?v=20260824-account-breeze"></script>
   <script src="/js/mobile.js"></script>
   <script src="/js/native-ws.js"></script>
-  <script src="/js/client.js?v=20260823-playfix2"></script>
+  <script src="/js/client.js?v=20260824-nickname2"></script>
 </body>
 </html>

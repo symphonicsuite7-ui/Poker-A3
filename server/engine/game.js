@@ -194,6 +194,7 @@ function cloneDraw(draw) {
   });
   return {
     step: draw.step,
+    mode: draw.mode || 'normal',
     uniqueTargets: !!draw.uniqueTargets,
     gainers: (draw.gainers || []).map((g) => ({ seat: g.seat, amount: g.amount })),
     losers: (draw.losers || []).map((g) => ({ seat: g.seat, amount: g.amount })),
@@ -245,6 +246,24 @@ function allGainersGave(draw) {
   return draw.gainers.every((g) => mapGet(draw.gives, g.seat));
 }
 
+/** 独吞头游/二游：一名加分者、多名减分者，且加分=减分合计 → 吞噬平分模式 */
+function isDevourDraw(draw) {
+  return !!(draw && draw.mode === 'devour');
+}
+
+function remainingGiveLosers(draw, gainerSeat) {
+  const done = {};
+  (draw.giveCards || []).forEach((t) => {
+    if (t.from === gainerSeat) done[t.to] = true;
+  });
+  return (draw.losers || []).filter((l) => !done[l.seat]);
+}
+
+function giveChunkSize(draw, gainerSeat) {
+  const rem = remainingGiveLosers(draw, gainerSeat);
+  return rem.length ? rem[0].amount : 0;
+}
+
 /** 根据上一局加减分进入抽牌，无人加分则直接开打 */
 function attachDraw(state, deltas) {
   state.lastDeltas = (deltas || [0, 0, 0, 0]).slice();
@@ -260,9 +279,13 @@ function attachDraw(state, deltas) {
     state.draw = null;
     return false;
   }
+  const loserSum = losers.reduce((s, l) => s + l.amount, 0);
+  const devour =
+    gainers.length === 1 && losers.length >= 2 && gainers[0].amount === loserSum;
   state.phase = 'draw';
   state.draw = {
-    step: 'pick',
+    step: devour ? 'devour' : 'pick',
+    mode: devour ? 'devour' : 'normal',
     uniqueTargets: gainers.length <= losers.length,
     gainers: gainers,
     losers: losers,
@@ -286,6 +309,30 @@ function applyTakes(state) {
     target.hand = Cards.sortCards(result.remain);
     gainer.hand = Cards.sortCards(gainer.hand.concat(result.taken));
     draw.takes.push({ from: from, to: g.seat, cards: result.taken });
+    pushEvent(state, {
+      kind: 'system',
+      seat: g.seat,
+      name: gainer.name,
+      text: gainer.name + ' 从 ' + target.name + ' 抽了 ' + result.taken.length + ' 张',
+      cards: result.taken,
+    });
+  }
+  draw.step = 'showTake';
+  draw.revealUntil = Date.now() + DRAW_REVEAL_MS;
+}
+
+/** 吞噬：按每位减分者失分张数平分抽取 */
+function applyDevourTakes(state) {
+  const draw = state.draw;
+  const g = draw.gainers[0];
+  const gainer = state.players[g.seat];
+  for (let i = 0; i < draw.losers.length; i++) {
+    const loser = draw.losers[i];
+    const target = state.players[loser.seat];
+    const result = randomTake(target.hand, loser.amount);
+    target.hand = Cards.sortCards(result.remain);
+    gainer.hand = Cards.sortCards(gainer.hand.concat(result.taken));
+    draw.takes.push({ from: loser.seat, to: g.seat, cards: result.taken });
     pushEvent(state, {
       kind: 'system',
       seat: g.seat,
@@ -329,6 +376,35 @@ function applyGives(state) {
   draw.revealUntil = Date.now() + DRAW_REVEAL_MS;
 }
 
+/** 吞噬模式：立即还一批牌给指定减分者 */
+function applyOneDevourGive(state, seat, ids, targetSeat) {
+  const draw = state.draw;
+  const gainer = state.players[seat];
+  const target = state.players[targetSeat];
+  const given = [];
+  gainer.hand = gainer.hand.filter((c) => {
+    if (ids.indexOf(c.id) >= 0) {
+      given.push(c);
+      return false;
+    }
+    return true;
+  });
+  target.hand = Cards.sortCards(target.hand.concat(given));
+  gainer.hand = Cards.sortCards(gainer.hand);
+  draw.giveCards.push({ from: seat, to: targetSeat, cards: given });
+  pushEvent(state, {
+    kind: 'system',
+    seat: seat,
+    name: gainer.name,
+    text: gainer.name + ' 还给 ' + target.name + ' ' + given.length + ' 张',
+    cards: given,
+  });
+  if (remainingGiveLosers(draw, seat).length === 0) {
+    draw.step = 'showGive';
+    draw.revealUntil = Date.now() + DRAW_REVEAL_MS;
+  }
+}
+
 function beginPlayAfterDraw(state) {
   const starter = findDiamond4Seat(state.players);
   state.currentPlayer = starter;
@@ -345,9 +421,30 @@ function beginPlayAfterDraw(state) {
   });
 }
 
+/** 独吞加分者点击「吞噬」：自动平分抽牌 */
+function devourDraw(state, seat) {
+  if (state.phase !== 'draw' || !state.draw || state.draw.step !== 'devour' || !isDevourDraw(state.draw)) {
+    return { ok: false, reason: '现在不能吞噬', state: state };
+  }
+  const g = state.draw.gainers.find((x) => x.seat === seat);
+  if (!g) return { ok: false, reason: '你不是加分者', state: state };
+  const next = cloneState(state);
+  pushEvent(next, {
+    kind: 'system',
+    seat: seat,
+    name: nameOf(next, seat),
+    text: nameOf(next, seat) + ' 吞噬 ' + g.amount + ' 张牌',
+  });
+  applyDevourTakes(next);
+  return { ok: true, state: next };
+}
+
 function pickDrawTarget(state, seat, targetSeat) {
   if (state.phase !== 'draw' || !state.draw || state.draw.step !== 'pick') {
     return { ok: false, reason: '现在不能选择抽牌对象', state: state };
+  }
+  if (isDevourDraw(state.draw)) {
+    return { ok: false, reason: '吞噬模式请点击吞噬', state: state };
   }
   const g = state.draw.gainers.find((x) => x.seat === seat);
   if (!g) return { ok: false, reason: '你不是加分者', state: state };
@@ -374,19 +471,13 @@ function pickDrawTarget(state, seat, targetSeat) {
   return { ok: true, state: next };
 }
 
-function giveDrawCards(state, seat, cardIds) {
+function giveDrawCards(state, seat, cardIds, targetSeat) {
   if (state.phase !== 'draw' || !state.draw || state.draw.step !== 'give') {
     return { ok: false, reason: '现在不能还牌', state: state };
   }
   const g = state.draw.gainers.find((x) => x.seat === seat);
   if (!g) return { ok: false, reason: '你不是加分者', state: state };
-  if (mapGet(state.draw.gives, seat)) {
-    return { ok: false, reason: '你已经还过牌', state: state };
-  }
   const ids = cardIds || [];
-  if (ids.length !== g.amount) {
-    return { ok: false, reason: '请选择 ' + g.amount + ' 张还牌', state: state };
-  }
   if (new Set(ids).size !== ids.length) {
     return { ok: false, reason: '不能重复选同一张牌', state: state };
   }
@@ -395,6 +486,28 @@ function giveDrawCards(state, seat, cardIds) {
     if (!p.hand.some((c) => c.id === ids[i])) {
       return { ok: false, reason: '选中的牌不在手牌中', state: state };
     }
+  }
+
+  if (isDevourDraw(state.draw)) {
+    if (targetSeat == null || targetSeat === '') {
+      return { ok: false, reason: '请选择还牌对象', state: state };
+    }
+    const rem = remainingGiveLosers(state.draw, seat);
+    const loser = rem.find((x) => x.seat === Number(targetSeat));
+    if (!loser) return { ok: false, reason: '只能还给尚未还过的减分者', state: state };
+    if (ids.length !== loser.amount) {
+      return { ok: false, reason: '请选择 ' + loser.amount + ' 张还牌', state: state };
+    }
+    const next = cloneState(state);
+    applyOneDevourGive(next, seat, ids.slice(), Number(targetSeat));
+    return { ok: true, state: next };
+  }
+
+  if (mapGet(state.draw.gives, seat)) {
+    return { ok: false, reason: '你已经还过牌', state: state };
+  }
+  if (ids.length !== g.amount) {
+    return { ok: false, reason: '请选择 ' + g.amount + ' 张还牌', state: state };
   }
 
   const next = cloneState(state);
@@ -418,7 +531,10 @@ function advanceDrawReveal(state) {
   if (next.draw.step === 'showTake') {
     next.draw.step = 'give';
     next.draw.revealUntil = null;
-    pushEvent(next, { kind: 'system', text: '请加分者从手牌中选出还牌' });
+    const tip = isDevourDraw(next.draw)
+      ? '请选出还牌，再选择对象归还（按失分张数分批）'
+      : '请加分者从手牌中选出还牌';
+    pushEvent(next, { kind: 'system', text: tip });
     return { ok: true, state: next };
   }
   if (next.draw.step === 'showGive') {
@@ -428,9 +544,10 @@ function advanceDrawReveal(state) {
   return { ok: false, reason: '当前不能进入下一步', state: state };
 }
 
+/** 顺时针下家：座位号递减（跳过已出完的玩家）。与本地试玩一致。 */
 function nextActiveAfter(state, fromId) {
   for (let i = 1; i <= 4; i++) {
-    const id = (fromId + i) % 4;
+    const id = (fromId - i + 4) % 4;
     if (state.players[id].finishedRank === null) return id;
   }
   return fromId;
@@ -767,9 +884,13 @@ module.exports = {
   playCards,
   passTurn,
   nextRound,
+  devourDraw,
   pickDrawTarget,
   giveDrawCards,
   advanceDrawReveal,
+  remainingGiveLosers,
+  giveChunkSize,
+  isDevourDraw,
   identifyPlay,
   validatePlay,
   cloneState,

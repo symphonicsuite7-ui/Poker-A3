@@ -9,8 +9,8 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <title>天子牌局：葵影</title>
   <link rel="stylesheet" href="/css/style.css" />
-  <link rel="stylesheet" href="/css/app.css" />
-  <link rel="stylesheet" href="/css/medieval.css" />
+  <link rel="stylesheet" href="/css/app.css?v=20260824-account-breeze" />
+  <link rel="stylesheet" href="/css/medieval.css?v=20260824-breeze-clear" />
 </head>
 <body>
   <section class="screen screen-game theme-medieval">
@@ -67,12 +67,15 @@
     </div>
   </section>
 
-  <div id="draw-overlay" class="draw-overlay" hidden>
+  <div id="draw-overlay" class="draw-overlay theme-medieval" hidden>
     <div class="draw-panel">
       <h2 id="draw-title">抽牌</h2>
       <p id="draw-desc" class="draw-desc"></p>
       <div id="draw-targets" class="draw-targets"></div>
       <div id="draw-cards" class="draw-card-groups"></div>
+      <div class="draw-actions">
+        <button type="button" id="btn-draw-devour" class="btn btn-primary" hidden>吞噬</button>
+      </div>
       <div id="draw-timer" class="draw-timer"></div>
     </div>
   </div>
@@ -80,7 +83,7 @@
   <script src="/js/cards.js"></script>
   <script src="/js/rules.js"></script>
   <script src="/js/local-game.js"></script>
-  <script src="/js/gallery.js"></script>
+  <script src="/js/gallery.js?v=20260824-gallery-breeze"></script>
   <script src="/js/mobile.js"></script>
   <script src="/js/local.js"></script>
 </body>
