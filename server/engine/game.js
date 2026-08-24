@@ -214,6 +214,38 @@ function cloneDraw(draw) {
   };
 }
 
+/**
+ * 抽牌公示会暴露葵扇3/A的当前归属。按全部公开转移重新推导，
+ * 避免关键牌先被抽走、随后又被还回时留下过期标记。
+ */
+function refreshGoodsMarksFromDraw(state) {
+  if (!state.draw) return;
+  const knownOwners = { spade3: null, spadeA: null };
+  const transfers = (state.draw.takes || []).concat(state.draw.giveCards || []);
+
+  transfers.forEach((transfer) => {
+    (transfer.cards || []).forEach((card) => {
+      if (Cards.isSpade3(card)) knownOwners.spade3 = transfer.to;
+      if (Cards.isSpadeA(card)) knownOwners.spadeA = transfer.to;
+    });
+  });
+
+  state.players.forEach((player) => {
+    player.goodsCount = 0;
+    player.goodsMark = null;
+  });
+
+  if (knownOwners.spade3 != null) state.players[knownOwners.spade3].goodsCount += 1;
+  if (knownOwners.spadeA != null) state.players[knownOwners.spadeA].goodsCount += 1;
+
+  state.players.forEach(refreshGoodsMark);
+  if (knownOwners.spade3 != null && knownOwners.spadeA != null) {
+    state.players.forEach((player) => {
+      if (!player.goodsMark) player.goodsMark = 'none';
+    });
+  }
+}
+
 function mapGet(map, seat) {
   if (!map) return undefined;
   if (map[seat] != null) return map[seat];
@@ -317,6 +349,7 @@ function applyTakes(state) {
       cards: result.taken,
     });
   }
+  refreshGoodsMarksFromDraw(state);
   draw.step = 'showTake';
   draw.revealUntil = Date.now() + DRAW_REVEAL_MS;
 }
@@ -341,6 +374,7 @@ function applyDevourTakes(state) {
       cards: result.taken,
     });
   }
+  refreshGoodsMarksFromDraw(state);
   draw.step = 'showTake';
   draw.revealUntil = Date.now() + DRAW_REVEAL_MS;
 }
@@ -372,6 +406,7 @@ function applyGives(state) {
       cards: given,
     });
   }
+  refreshGoodsMarksFromDraw(state);
   draw.step = 'showGive';
   draw.revealUntil = Date.now() + DRAW_REVEAL_MS;
 }
@@ -392,6 +427,7 @@ function applyOneDevourGive(state, seat, ids, targetSeat) {
   target.hand = Cards.sortCards(target.hand.concat(given));
   gainer.hand = Cards.sortCards(gainer.hand);
   draw.giveCards.push({ from: seat, to: targetSeat, cards: given });
+  refreshGoodsMarksFromDraw(state);
   pushEvent(state, {
     kind: 'system',
     seat: seat,
@@ -406,6 +442,10 @@ function applyOneDevourGive(state, seat, ids, targetSeat) {
 }
 
 function beginPlayAfterDraw(state) {
+  const teams = resolveTeams(state.players);
+  state.teamA = teams.teamA;
+  state.teamB = teams.teamB;
+  state.solo = teams.solo;
   const starter = findDiamond4Seat(state.players);
   state.currentPlayer = starter;
   state.phase = 'playing';
