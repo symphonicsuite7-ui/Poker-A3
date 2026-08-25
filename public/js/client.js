@@ -29,6 +29,11 @@
   let gameEntryVersion = 0;
 
   const $ = (id) => document.getElementById(id);
+  /** 节点可能已从牌桌中间移除，写入前先判断 */
+  const setText = (id, text) => {
+    const el = $(id);
+    if (el) el.textContent = text;
+  };
 
   const LETTER_COLORS = ['#3d5a80', '#2f6b4f', '#6b4a2f', '#4a3d6b', '#6b3d4a', '#2f5a6b'];
 
@@ -1201,7 +1206,7 @@
     if (gameScreen) gameScreen.classList.toggle('draw-give-select', !!canGive);
 
     if (game.phase === 'settled') {
-      $('turn-info').textContent = '本局已结束';
+      setText('turn-info', '本局已结束');
       $('btn-next').hidden = !amHost;
       $('btn-play').disabled = true;
       $('btn-pass').disabled = true;
@@ -1214,35 +1219,42 @@
       $('btn-pass').disabled = true;
       if ($('btn-suggest')) $('btn-suggest').disabled = true;
       if (canGive) {
-        $('turn-info').textContent =
+        setText(
+          'turn-info',
           d.mode === 'devour'
             ? '还牌 · 请选出 ' + need + ' 张，点还牌后再选对象'
             : '还牌 · 请选出 ' +
               need +
               ' 张还给 ' +
-              (game.players[d.myPick] ? game.players[d.myPick].name : '');
+              (game.players[d.myPick] ? game.players[d.myPick].name : '')
+        );
         $('btn-draw-give').hidden = false;
         $('btn-draw-give').disabled = selectedIds().length !== need;
       } else {
         if (d && d.step === 'devour') {
-          $('turn-info').textContent = d.isGainer
-            ? '吞噬 ' + d.myAmount + ' 张牌'
-            : '第 ' + game.round + ' 局 · 等待吞噬';
+          setText(
+            'turn-info',
+            d.isGainer
+              ? '吞噬 ' + d.myAmount + ' 张牌'
+              : '第 ' + game.round + ' 局 · 等待吞噬'
+          );
         } else {
-          $('turn-info').textContent = '第 ' + game.round + ' 局 · 抽牌阶段';
+          setText('turn-info', '第 ' + game.round + ' 局 · 抽牌阶段');
         }
         $('btn-draw-give').hidden = true;
         if (!d || d.step !== 'give') pendingGivePick = false;
       }
     } else {
       const cur = game.players[game.currentPlayer];
-      $('turn-info').textContent =
+      setText(
+        'turn-info',
         '第 ' +
-        game.round +
-        ' 局 · 轮到 ' +
-        cur.name +
-        (cur.isMe ? '（你）' : '') +
-        ' 出牌';
+          game.round +
+          ' 局 · 轮到 ' +
+          cur.name +
+          (cur.isMe ? '（你）' : '') +
+          ' 出牌'
+      );
       $('btn-next').hidden = true;
       $('btn-play').disabled = !(myTurn && selectedIds().length > 0);
       $('btn-pass').disabled = !(myTurn && game.lastPlay !== null);
@@ -1254,20 +1266,24 @@
 
     if (game.teamA) {
       if (game.solo) {
-        $('team-info').textContent =
+        setText(
+          'team-info',
           '队伍：' +
-          game.players[game.teamA[0]].name +
-          ' 独吞  vs  ' +
-          game.teamB.map((i) => game.players[i].name).join('、');
+            game.players[game.teamA[0]].name +
+            ' 独吞  vs  ' +
+            game.teamB.map((i) => game.players[i].name).join('、')
+        );
       } else {
-        $('team-info').textContent =
+        setText(
+          'team-info',
           '队伍：' +
-          game.teamA.map((i) => game.players[i].name).join('、') +
-          '  vs  ' +
-          game.teamB.map((i) => game.players[i].name).join('、');
+            game.teamA.map((i) => game.players[i].name).join('、') +
+            '  vs  ' +
+            game.teamB.map((i) => game.players[i].name).join('、')
+        );
       }
     } else {
-      $('team-info').textContent = '队伍未揭晓（葵扇3、葵扇A 打出后揭晓）';
+      setText('team-info', '队伍未揭晓（葵扇3、葵扇A 打出后揭晓）');
     }
 
     const mySeat = game.mySeat != null ? game.mySeat : 0;

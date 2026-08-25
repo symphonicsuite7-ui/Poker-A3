@@ -23,6 +23,11 @@
   let pendingGivePick = false;
 
   const $ = (id) => document.getElementById(id);
+  /** 节点可能已从牌桌中间移除，写入前先判断 */
+  const setText = (id, text) => {
+    const el = $(id);
+    if (el) el.textContent = text;
+  };
 
   function selectedIds() {
     return Object.keys(selected).filter((k) => selected[k]);
@@ -959,7 +964,7 @@
     if (gameScreen) gameScreen.classList.toggle('draw-give-select', canGive);
 
     if (state.phase === 'settled') {
-      $('turn-info').textContent = '本局已结束';
+      setText('turn-info', '本局已结束');
       $('btn-next').hidden = false;
       $('btn-play').disabled = true;
       $('btn-pass').disabled = true;
@@ -972,34 +977,40 @@
       $('btn-pass').disabled = true;
       if ($('btn-suggest')) $('btn-suggest').disabled = true;
       if (canGive) {
-        $('turn-info').textContent =
+        setText(
+          'turn-info',
           PokerGame.isDevourDraw(state.draw)
             ? '还牌 · 请选出 ' + need + ' 张，点还牌后再选对象'
-            : '还牌 · 请选出 ' + need + ' 张还给 ' + state.players[mapGet(state.draw.picks, MY_SEAT)].name;
+            : '还牌 · 请选出 ' + need + ' 张还给 ' + state.players[mapGet(state.draw.picks, MY_SEAT)].name
+        );
         $('btn-draw-give').hidden = false;
         $('btn-draw-give').disabled = selectedIds().length !== need;
       } else {
         if (state.draw && state.draw.step === 'devour') {
           const g = state.draw.gainers[0];
-          $('turn-info').textContent =
+          setText(
+            'turn-info',
             g.seat === MY_SEAT
               ? '吞噬 ' + g.amount + ' 张牌'
-              : '等待 ' + state.players[g.seat].name + ' 吞噬';
+              : '等待 ' + state.players[g.seat].name + ' 吞噬'
+          );
         } else {
-          $('turn-info').textContent = '第 ' + state.round + ' 局 · 抽牌阶段';
+          setText('turn-info', '第 ' + state.round + ' 局 · 抽牌阶段');
         }
         $('btn-draw-give').hidden = true;
         if (!drawGive) pendingGivePick = false;
       }
     } else {
       const cur = state.players[state.currentPlayer];
-      $('turn-info').textContent =
+      setText(
+        'turn-info',
         '第 ' +
-        state.round +
-        ' 局 · 轮到 ' +
-        cur.name +
-        (cur.id === MY_SEAT ? '（你）' : '') +
-        ' 出牌';
+          state.round +
+          ' 局 · 轮到 ' +
+          cur.name +
+          (cur.id === MY_SEAT ? '（你）' : '') +
+          ' 出牌'
+      );
       $('btn-next').hidden = true;
       $('btn-play').disabled = !(myTurn && selectedIds().length > 0);
       $('btn-pass').disabled = !(myTurn && state.lastPlay !== null);
@@ -1011,20 +1022,24 @@
 
     if (state.revealedTeam || state.phase === 'settled') {
       if (state.solo) {
-        $('team-info').textContent =
+        setText(
+          'team-info',
           '队伍：' +
-          state.players[state.teamA[0]].name +
-          ' 独吞  vs  ' +
-          state.teamB.map((i) => state.players[i].name).join('、');
+            state.players[state.teamA[0]].name +
+            ' 独吞  vs  ' +
+            state.teamB.map((i) => state.players[i].name).join('、')
+        );
       } else {
-        $('team-info').textContent =
+        setText(
+          'team-info',
           '队伍：' +
-          state.teamA.map((i) => state.players[i].name).join('、') +
-          '  vs  ' +
-          state.teamB.map((i) => state.players[i].name).join('、');
+            state.teamA.map((i) => state.players[i].name).join('、') +
+            '  vs  ' +
+            state.teamB.map((i) => state.players[i].name).join('、')
+        );
       }
     } else {
-      $('team-info').textContent = '队伍未揭晓（葵扇3、葵扇A 打出后揭晓）';
+      setText('team-info', '队伍未揭晓（葵扇3、葵扇A 打出后揭晓）');
     }
 
     const revealAll = state.phase === 'settled';
