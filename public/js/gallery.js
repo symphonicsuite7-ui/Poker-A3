@@ -72,6 +72,54 @@
     bgToggleBtn.classList.toggle('is-active', peeking);
   }
 
+  /**
+   * 对局中：图库/显示背景图放进右上角工具栏；
+   * 登录大厅：放回右下角 dock（预览壁纸时仍可点）。
+   */
+  function syncControls(inGame) {
+    const dock = document.getElementById('gallery-dock');
+    const fab = document.getElementById('btn-gallery');
+    const toolbar =
+      document.querySelector('#screen-game .game-toolbar') ||
+      document.querySelector('.screen-game .game-toolbar');
+    if (!bgToggleBtn || !fab) return;
+
+    const useToolbar = !!inGame && !!toolbar;
+    if (useToolbar) {
+      if (bgToggleBtn.classList.contains('gallery-dock-btn')) {
+        bgToggleBtn.className = 'btn';
+      }
+      if (fab.classList.contains('gallery-dock-btn') || fab.classList.contains('gallery-fab')) {
+        fab.className = 'btn';
+        if (!fab.querySelector('.btn-ico')) {
+          fab.innerHTML = '<span class="btn-ico">🏛</span>图库';
+        }
+      }
+      // 已在工具栏则保持原顺序；否则插到「再来一局」前
+      if (!toolbar.contains(bgToggleBtn) || !toolbar.contains(fab)) {
+        const anchor = document.getElementById('btn-next');
+        const before =
+          anchor && anchor.parentNode === toolbar ? anchor : null;
+        if (before) {
+          toolbar.insertBefore(bgToggleBtn, before);
+          toolbar.insertBefore(fab, before);
+        } else {
+          toolbar.appendChild(bgToggleBtn);
+          toolbar.appendChild(fab);
+        }
+      }
+      if (dock) dock.hidden = true;
+    } else if (dock) {
+      bgToggleBtn.className = 'gallery-dock-btn' + (peeking ? ' is-active' : '');
+      fab.className = 'gallery-dock-btn gallery-dock-main';
+      if (fab.querySelector('.btn-ico')) fab.textContent = '图库';
+      dock.appendChild(bgToggleBtn);
+      dock.appendChild(fab);
+      dock.hidden = false;
+    }
+    syncPeekButton();
+  }
+
   /** peek=true 透出壁纸；false 恢复登录/大厅青绿等当前界面背景 */
   function applyPeek(on, skipStore) {
     peeking = !!on;
@@ -315,6 +363,15 @@
     fab.addEventListener('click', open);
     syncPeekButton();
 
+    // 纯本地对局页：始终放在右上角工具栏
+    const gameOnly =
+      !!document.querySelector('.screen-game') && !document.getElementById('screen-auth');
+    if (gameOnly) syncControls(true);
+    else {
+      const gameScreen = document.getElementById('screen-game');
+      syncControls(!!(gameScreen && !gameScreen.hidden));
+    }
+
     overlay = document.createElement('div');
     overlay.id = 'gallery-overlay';
     overlay.className = 'gallery-overlay gallery-breeze';
@@ -390,5 +447,6 @@
     restore: restore,
     saveLocal: saveLocal,
     currentImage: savedImage,
+    syncControls: syncControls,
   };
 })(window);

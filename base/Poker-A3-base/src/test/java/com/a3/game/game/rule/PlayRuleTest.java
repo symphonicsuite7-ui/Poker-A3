@@ -59,6 +59,31 @@ class PlayRuleTest {
 		assertFalse(PlayRule.canBeat(straight, emperor));
 	}
 
+	/** 绕圈顺：3→4；跨圈键牌为末张（A2345 看 5），小顺可压大牌绕圈顺 */
+	@Test
+	void wrapStraight_keyIsLastNotThree() {
+		// A2345：ranks 10,11,12,0,1 → 末张 5
+		Play wrap = PlayRule.identifyPlay(List.of(c(0, 10), c(1, 11), c(2, 12), c(3, 0), c(0, 1)));
+		assertEquals(PlayType.STRAIGHT, wrap.getType());
+		assertEquals(1, wrap.getKeyRank().intValue());
+		assertEquals(1, wrap.getKeyCard().getRank());
+
+		// 45678 末张 8，应能压 A2345
+		Play low = PlayRule.identifyPlay(List.of(c(0, 0), c(1, 1), c(2, 2), c(3, 3), c(0, 4)));
+		assertTrue(PlayRule.canBeat(low, wrap));
+		assertFalse(PlayRule.canBeat(wrap, low));
+
+		// KA234 末张 4
+		Play ka234 = PlayRule.identifyPlay(List.of(c(0, 9), c(1, 10), c(2, 11), c(3, 12), c(0, 0)));
+		assertEquals(PlayType.STRAIGHT, ka234.getType());
+		assertEquals(0, ka234.getKeyRank().intValue());
+
+		// 同花绕圈仍是天子，不是同花
+		Play wrapFlush = PlayRule.identifyPlay(List.of(c(2, 10), c(2, 11), c(2, 12), c(2, 0), c(2, 1)));
+		assertEquals(PlayType.FLUSHSTRAIGHT, wrapFlush.getType());
+		assertEquals(1, wrapFlush.getKeyRank().intValue());
+	}
+
 	@Test
 	void validate_rejectsIllegal() {
 		assertFalse(PlayRule.validatePlay(List.of(c(0, 0), c(1, 1)), null).isOk());

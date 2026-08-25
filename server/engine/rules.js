@@ -13,13 +13,38 @@ function rankCounts(cards) {
   return m;
 }
 
-function isStraightRanks(cards) {
-  const ranks = [...new Set(cards.map((c) => c.rank))].sort((a, b) => a - b);
-  if (ranks.length !== 5) return false;
-  for (let i = 1; i < 5; i++) {
-    if (ranks[i] !== ranks[i - 1] + 1) return false;
+function straightStartRank(cards) {
+  const set = {};
+  for (const c of cards) set[c.rank] = true;
+  if (Object.keys(set).length !== 5) return null;
+  for (let start = 0; start < 13; start++) {
+    let ok = true;
+    for (let i = 0; i < 5; i++) {
+      if (!set[(start + i) % 13]) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) return start;
   }
-  return true;
+  return null;
+}
+
+function isStraightRanks(cards) {
+  return straightStartRank(cards) != null;
+}
+
+/** 顺子/天子键牌：环上末张（跨 3→4 时如 A2345 看 5） */
+function straightKeyCard(cards) {
+  const start = straightStartRank(cards);
+  if (start == null) return null;
+  const endRank = (start + 4) % 13;
+  let key = null;
+  for (const c of cards) {
+    if (c.rank !== endRank) continue;
+    if (!key || compareSingle(c, key) > 0) key = c;
+  }
+  return key;
 }
 
 function identifyPlay(raw) {
@@ -87,12 +112,13 @@ function identifyPlay(raw) {
     const sameSuit = cards.every((c) => c.suit === cards[0].suit);
 
     if (isStraightRanks(cards)) {
+      const keyCard = straightKeyCard(cards) || maxCard;
       if (sameSuit) {
         return {
           type: 'flushstraight',
           cards,
-          keyRank: maxCard.rank,
-          keyCard: maxCard,
+          keyRank: keyCard.rank,
+          keyCard,
           keySuit: cards[0].suit,
           label: '天子',
         };
@@ -100,8 +126,8 @@ function identifyPlay(raw) {
       return {
         type: 'straight',
         cards,
-        keyRank: maxCard.rank,
-        keyCard: maxCard,
+        keyRank: keyCard.rank,
+        keyCard,
         label: '顺子',
       };
     }

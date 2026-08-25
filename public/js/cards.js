@@ -74,7 +74,7 @@
   }
 
   // 图库文件名：花色 diamonds/clubs/hearts/spades，点数 2-10 / jack / queen / king / ace
-  // 全部点数统一用 SVG（含 J/Q/K，避免大体积 PNG）
+  // 数字牌用 SVG；J/Q/K 用人像 PNG（更好看，开局由 PokerPreloader 缓存）
   const SUIT_FILE = ['diamonds', 'clubs', 'hearts', 'spades'];
   const RANK_FILE = [
     '4',
@@ -94,7 +94,9 @@
 
   function cardImageUrl(card) {
     const rankName = RANK_FILE[card.rank];
-    return '/cards/' + rankName + '_of_' + SUIT_FILE[card.suit] + '.svg';
+    // J/Q/K（rank 7/8/9）用 PNG，其余用 SVG
+    const ext = card.rank >= 7 && card.rank <= 9 ? '.png' : '.svg';
+    return '/cards/' + rankName + '_of_' + SUIT_FILE[card.suit] + ext;
   }
 
   // 卡背 SVG（内联 data URI，不请求 back.png / back.svg 文件）

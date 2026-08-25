@@ -1332,6 +1332,17 @@ body.gallery-bg-peek .screen-game .app {
   transition: opacity 0.25s ease;
 }
 
+/* 预览壁纸时右上角图库/背景按钮仍可点 */
+body.gallery-bg-peek .screen-game .game-toolbar-bar {
+  opacity: 1;
+  pointer-events: none;
+}
+body.gallery-bg-peek .screen-game .game-toolbar-bar #btn-gallery-bg,
+body.gallery-bg-peek .screen-game .game-toolbar-bar #btn-gallery {
+  pointer-events: auto;
+  opacity: 1;
+}
+
 body.gallery-bg-peek::before {
   opacity: 0 !important;
 }

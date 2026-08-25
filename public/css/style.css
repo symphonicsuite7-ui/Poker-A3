@@ -47,11 +47,11 @@ body {
   padding: 12px 16px 16px;
   display: grid;
   gap: 12px;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: 280px 1fr;
   grid-template-rows: auto 1fr;
   grid-template-areas:
     "top top"
-    "table log";
+    "log table";
   min-height: 100vh;
 }
 
@@ -71,7 +71,7 @@ body {
   /* 主题伪元素相对对局屏定位 */
 }
 
-/* 牌桌+记录铺满；顶栏浮层；底栏小贴士 */
+/* 牌桌+记录铺满；顶栏浮层；底栏小贴士（日志在左，方便右手操作） */
 .screen-game .app {
   position: relative;
   width: 100%;
@@ -81,18 +81,18 @@ body {
   padding: 0;
   gap: 0;
   min-height: 0;
-  grid-template-columns: minmax(0, 1fr) 236px;
+  grid-template-columns: 236px minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   grid-template-areas:
-    "table log"
-    "tip log";
+    "log table"
+    "log tip";
 }
 
 .screen-game .game-toolbar-bar {
   position: absolute;
   top: 10px;
-  left: 12px;
-  right: 248px;
+  left: 248px;
+  right: 12px;
   z-index: 30;
   grid-area: unset;
   width: auto;
@@ -141,12 +141,19 @@ body {
   border-radius: 10px;
 }
 
-.screen-game .game-toolbar #btn-gallery {
+.screen-game .game-toolbar #btn-gallery,
+.screen-game .game-toolbar #btn-gallery-bg {
   position: static;
   right: auto;
   bottom: auto;
   box-shadow: none;
   border-radius: 10px;
+}
+
+.screen-game .game-toolbar #btn-gallery-bg.is-active {
+  background: rgba(255, 255, 255, 0.92);
+  color: #2f9a7a;
+  border-color: transparent;
 }
 
 .game-tip-bar {
@@ -458,6 +465,7 @@ body {
   align-items: stretch;
   gap: 2px;
   min-width: 0;
+  overflow: visible;
 }
 
 .seat-bottom {
@@ -466,11 +474,104 @@ body {
   justify-content: flex-end;
   width: 100%;
   gap: 10px;
+  overflow: visible;
 }
 
 .seat-bottom .hand {
   flex: 1;
   min-width: 0;
+}
+
+/* 底部手牌：横向滚动 + 左右按钮（允许火焰向上溢出） */
+.seat-bottom .hand-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+.seat-bottom .hand-scroll .hand {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 轮到自己：手牌背后像素火焰
+ * 微调只改下面 CSS 变量即可（不要写死 width:xxpx，否则左右拉不动）
+ * --fire-left / --fire-right：左右边距，越小火焰越宽
+ * --fire-bottom：距托盘底
+ * --fire-height：火焰框高度（飞多高的上限）
+ * --fire-opacity：整体透明度
+ */
+.seat-bottom {
+  position: relative;
+}
+
+.seat-bottom .hand-scroll,
+.seat-bottom .hand.horizontal {
+  position: relative;
+}
+
+.seat-bottom .hand-fire-canvas {
+  --fire-left: 1px;
+  --fire-right: 200px;
+  --fire-bottom: 4px;
+  --fire-height: 1200px;
+  --fire-opacity: 1;
+
+  position: absolute;
+  left: var(--fire-left);
+  right: var(--fire-right);
+  bottom: var(--fire-bottom);
+  width: auto !important;
+  max-width: none !important;
+  height: var(--fire-height) !important;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 8px;
+  opacity: var(--fire-opacity);
+  overflow: hidden;
+}
+
+.seat-bottom .hand.horizontal .card {
+  position: relative;
+  z-index: 1;
+  margin-left: -8px;
+}
+
+.seat-bottom .hand-scroll-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 48px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.seat-bottom .hand-scroll.is-scrollable .hand-scroll-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.seat-bottom .hand-scroll-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.seat-bottom .hand-scroll-btn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .seat-bottom .seat-info {
@@ -541,12 +642,34 @@ body {
   margin-left: -24px;
 }
 
-.seat-bottom .hand.horizontal .card {
-  margin-left: -8px;
-}
-
 .seat-bottom .hand.horizontal {
   padding-top: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  justify-content: flex-start;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 牌少时在框内居中；溢出时仍可滚动（保留滚动条） */
+.seat-bottom .hand.horizontal::before,
+.seat-bottom .hand.horizontal::after {
+  content: '';
+  margin: auto;
+}
+
+.seat-bottom .hand.horizontal::-webkit-scrollbar {
+  height: 8px;
+}
+
+.seat-bottom .hand.horizontal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+}
+
+.seat-bottom .hand.horizontal::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
 }
 
 .seat-bottom .hand.horizontal .card:first-child {
@@ -938,7 +1061,7 @@ body {
   background: rgba(10, 14, 22, 0.72);
   border-radius: 0;
   border: none;
-  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
   padding: 48px 12px 10px;
   max-height: none;
   min-height: 0;
@@ -1120,11 +1243,68 @@ body {
   color: #e8dfcf;
 }
 
+/* 抽牌公示：单行横向滚动，左右按钮翻看 */
+.draw-cards-scroll {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.draw-scroll-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.draw-cards-scroll.is-scrollable .draw-scroll-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.draw-scroll-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.draw-scroll-btn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .draw-card-group .log-cards {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
-  justify-content: center;
+  justify-content: flex-start;
+  align-items: flex-end;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  min-width: 0;
+  flex: 1;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 2px 8px;
+}
+
+.draw-card-group .log-cards::-webkit-scrollbar {
+  height: 6px;
+}
+
+.draw-card-group .log-cards::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 3px;
 }
 
 /* 抽牌/还牌公示：卡牌放大，便于辨认 */
@@ -1262,7 +1442,7 @@ body {
   }
 }
 
-/* 手机横屏：压低高度，保留桌面+右侧记录 */
+/* 手机横屏：压低高度，保留桌面+左侧记录 */
 @media (orientation: landscape) and (max-height: 560px) {
   html,
   body,
@@ -1281,11 +1461,11 @@ body {
     padding-right: max(8px, env(safe-area-inset-right));
     padding-bottom: max(6px, env(safe-area-inset-bottom));
     gap: 6px;
-    grid-template-columns: minmax(0, 1fr) 168px;
+    grid-template-columns: 168px minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas:
       "top top"
-      "table log";
+      "log table";
     min-height: 0;
   }
 
@@ -1293,17 +1473,17 @@ body {
   .screen-game .app {
     padding: 0;
     gap: 0;
-    grid-template-columns: minmax(0, 1fr) 168px;
+    grid-template-columns: 168px minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
     grid-template-areas:
-      "table log"
-      "tip log";
+      "log table"
+      "log tip";
   }
 
   .screen-game .game-toolbar-bar {
     top: 4px;
-    left: 8px;
-    right: 176px;
+    left: 176px;
+    right: 8px;
     padding: 0;
   }
 

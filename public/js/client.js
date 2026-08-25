@@ -116,11 +116,59 @@
         verb +
         ' ' +
         other.name +
-        '</div><div class="log-cards">' +
+        '</div><div class="draw-cards-scroll">' +
+        '<button type="button" class="draw-scroll-btn draw-scroll-prev" aria-label="向左">‹</button>' +
+        '<div class="log-cards">' +
         cardsRowHtml(t.cards) +
+        '</div>' +
+        '<button type="button" class="draw-scroll-btn draw-scroll-next" aria-label="向右">›</button>' +
         '</div></div>';
     }
     return html;
+  }
+
+  /** 抽牌公示：牌过多时用左右按钮横向滚动 */
+  function bindDrawCardsScroll(root) {
+    if (!root) return;
+    const rows = root.querySelectorAll('.draw-cards-scroll');
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const track = row.querySelector('.log-cards');
+      const prev = row.querySelector('.draw-scroll-prev');
+      const next = row.querySelector('.draw-scroll-next');
+      if (!track || !prev || !next) continue;
+      if (row.dataset.bound === '1') {
+        track.dispatchEvent(new Event('scroll'));
+        continue;
+      }
+      row.dataset.bound = '1';
+      const step = () => Math.max(160, Math.floor(track.clientWidth * 0.7));
+      const sync = () => {
+        const max = track.scrollWidth - track.clientWidth;
+        const need = max > 4;
+        row.classList.toggle('is-scrollable', need);
+        prev.disabled = !need || track.scrollLeft <= 2;
+        next.disabled = !need || track.scrollLeft >= max - 2;
+      };
+      prev.addEventListener('click', () => {
+        track.scrollBy({ left: -step(), behavior: 'smooth' });
+      });
+      next.addEventListener('click', () => {
+        track.scrollBy({ left: step(), behavior: 'smooth' });
+      });
+      track.addEventListener('scroll', sync);
+      sync();
+      requestAnimationFrame(sync);
+    }
+  }
+
+  function setDrawCardsHtml(html) {
+    const host = $('draw-cards');
+    if (!host) return;
+    if (host.dataset.snap === html) return;
+    host.dataset.snap = html;
+    host.innerHTML = html;
+    bindDrawCardsScroll(host);
   }
 
   function ensureDrawTick() {
@@ -175,6 +223,7 @@
     overlay.hidden = false;
     $('draw-targets').innerHTML = '';
     $('draw-cards').innerHTML = '';
+    if ($('draw-cards')) delete $('draw-cards').dataset.snap;
     $('draw-timer').textContent = '';
 
     if (d.step === 'devour') {
@@ -268,13 +317,13 @@
     } else if (d.step === 'showTake') {
       $('draw-title').textContent = '抽到的牌';
       $('draw-desc').textContent = '抽中的牌公示给所有人';
-      $('draw-cards').innerHTML = renderDrawCardGroups(d.takes, 'to', 'from', '抽了');
+      setDrawCardsHtml(renderDrawCardGroups(d.takes, 'to', 'from', '抽了'));
       $('draw-timer').textContent =
         '剩余 ' + Math.max(0, Math.ceil((d.revealUntil - Date.now()) / 1000)) + ' 秒';
     } else if (d.step === 'showGive') {
       $('draw-title').textContent = '还给的牌';
       $('draw-desc').textContent = '还回的牌公示给所有人';
-      $('draw-cards').innerHTML = renderDrawCardGroups(d.giveCards, 'from', 'to', '还给');
+      setDrawCardsHtml(renderDrawCardGroups(d.giveCards, 'from', 'to', '还给'));
       $('draw-timer').textContent =
         '剩余 ' + Math.max(0, Math.ceil((d.revealUntil - Date.now()) / 1000)) + ' 秒';
     }
@@ -291,6 +340,9 @@
     Object.keys(screens).forEach((k) => {
       screens[k].hidden = k !== name;
     });
+    if (window.PokerGallery && typeof PokerGallery.syncControls === 'function') {
+      PokerGallery.syncControls(name === 'game');
+    }
   }
 
   function selectedIds() {
@@ -373,6 +425,7 @@
       game = payload.game;
       if (!room) {
         PokerPreloader.hide();
+        if (window.PokerPixelFire) PokerPixelFire.stop();
         PokerGallery.restore();
         showScreen('lobby');
         return;
@@ -380,6 +433,7 @@
       applyRoomBackground();
       if (room.status === 'waiting') {
         PokerPreloader.hide();
+        if (window.PokerPixelFire) PokerPixelFire.stop();
         const overlay = $('draw-overlay');
         if (overlay) overlay.hidden = true;
         renderRoom();
@@ -987,6 +1041,10 @@
 
   function fillSeat(el, player, opts) {
     opts = opts || {};
+    const prevHand = el.id === 'seat-bottom' ? el.querySelector('.hand.horizontal') : null;
+    const savedScroll = prevHand ? prevHand.scrollLeft : 0;
+    const savedFire =
+      el.id === 'seat-bottom' ? el.querySelector('.hand-fire-canvas') : null;
     el.innerHTML = '';
     el.classList.toggle(
       'current',
@@ -1071,12 +1129,57 @@
         hand.appendChild(renderCard(null, { faceDown: true }));
       }
     }
+
+    // 底部自己的手牌：左右滚动（牌多时）
+    let handMount = hand;
+    if (el.id === 'seat-bottom' && !opts.vertical) {
+      const wrap = document.createElement('div');
+      wrap.className = 'hand-scroll';
+      const prev = document.createElement('button');
+      prev.type = 'button';
+      prev.className = 'hand-scroll-btn hand-scroll-prev';
+      prev.setAttribute('aria-label', '向左');
+      prev.textContent = '‹';
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.className = 'hand-scroll-btn hand-scroll-next';
+      next.setAttribute('aria-label', '向右');
+      next.textContent = '›';
+      wrap.appendChild(prev);
+      wrap.appendChild(hand);
+      wrap.appendChild(next);
+      const step = () => Math.max(120, Math.floor(hand.clientWidth * 0.65));
+      const sync = () => {
+        const max = hand.scrollWidth - hand.clientWidth;
+        const need = max > 4;
+        wrap.classList.toggle('is-scrollable', need);
+        prev.disabled = !need || hand.scrollLeft <= 2;
+        next.disabled = !need || hand.scrollLeft >= max - 2;
+      };
+      prev.addEventListener('click', () => {
+        hand.scrollBy({ left: -step(), behavior: 'smooth' });
+      });
+      next.addEventListener('click', () => {
+        hand.scrollBy({ left: step(), behavior: 'smooth' });
+      });
+      hand.addEventListener('scroll', sync);
+      handMount = wrap;
+      requestAnimationFrame(() => {
+        if (savedScroll > 0) hand.scrollLeft = savedScroll;
+        sync();
+      });
+    }
+
+    if (savedFire) {
+      hand.insertBefore(savedFire, hand.firstChild);
+    }
+
     if (opts.infoRight) {
-      el.appendChild(hand);
+      el.appendChild(handMount);
       el.appendChild(info);
     } else {
       el.appendChild(info);
-      el.appendChild(hand);
+      el.appendChild(handMount);
     }
   }
 
@@ -1192,6 +1295,11 @@
       thinking: thinkingSeat === (mySeat + 3) % 4,
     });
 
+    // 轮到自己操作时，手牌背后播放像素火焰
+    if (window.PokerPixelFire) {
+      PokerPixelFire.syncMyTurn(myTurn || canGive, $('seat-bottom'));
+    }
+
     if (game.phase === 'playing') {
       $('hint').textContent = myTurn
         ? previewText(selectedIds())
@@ -1288,6 +1396,8 @@
       const free = game.lastPlay === null;
       const found = PokerRules.findSmallestLegalPlay(me.hand, free ? null : game.lastPlay, {
         requireDiamond4: isOpeningLead(game),
+        // 自由出牌（含三家都过后）：提示选能出的最多张
+        preferLargest: free,
       });
       clearSelected();
       if (!found) {

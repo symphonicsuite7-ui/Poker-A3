@@ -11,7 +11,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * 牌型识别与压制，对应 Node server/engine/rules.js。
@@ -73,10 +72,14 @@ public final class PlayRule {
 			Card maxCard = Cards.maxCard(cards);
 			boolean sameSuit = cards.stream().allMatch(c -> c.getSuit() == cards.get(0).getSuit());
 			if (isStraightRanks(cards)) {
-				if (sameSuit) {
-					return play(PlayType.FLUSHSTRAIGHT, cards, maxCard.getRank(), maxCard, cards.get(0).getSuit());
+				Card keyCard = straightKeyCard(cards);
+				if (keyCard == null) {
+					keyCard = maxCard;
 				}
-				return play(PlayType.STRAIGHT, cards, maxCard.getRank(), maxCard, null);
+				if (sameSuit) {
+					return play(PlayType.FLUSHSTRAIGHT, cards, keyCard.getRank(), keyCard, cards.get(0).getSuit());
+				}
+				return play(PlayType.STRAIGHT, cards, keyCard.getRank(), keyCard, null);
 			}
 			if (sameSuit) {
 				return play(PlayType.FLUSH, cards, maxCard.getRank(), maxCard, cards.get(0).getSuit());
@@ -184,21 +187,51 @@ public final class PlayRule {
 		return m;
 	}
 
-	private static boolean isStraightRanks(List<Card> cards) {
+	/** 点数环 4→…→3→4；返回顺子起点，非法 null */
+	private static Integer straightStartRank(List<Card> cards) {
 		Set<Integer> set = new HashSet<>();
 		for (Card c : cards) {
 			set.add(c.getRank());
 		}
-		List<Integer> ranks = set.stream().sorted().collect(Collectors.toList());
-		if (ranks.size() != 5) {
-			return false;
+		if (set.size() != 5) {
+			return null;
 		}
-		for (int i = 1; i < 5; i++) {
-			if (ranks.get(i) != ranks.get(i - 1) + 1) {
-				return false;
+		for (int start = 0; start < 13; start++) {
+			boolean ok = true;
+			for (int i = 0; i < 5; i++) {
+				if (!set.contains((start + i) % 13)) {
+					ok = false;
+					break;
+				}
+			}
+			if (ok) {
+				return start;
 			}
 		}
-		return true;
+		return null;
+	}
+
+	private static boolean isStraightRanks(List<Card> cards) {
+		return straightStartRank(cards) != null;
+	}
+
+	/** 顺子/天子键牌：环上末张（跨 3→4 时如 A2345 看 5） */
+	private static Card straightKeyCard(List<Card> cards) {
+		Integer start = straightStartRank(cards);
+		if (start == null) {
+			return null;
+		}
+		int endRank = (start + 4) % 13;
+		Card key = null;
+		for (Card c : cards) {
+			if (c.getRank() != endRank) {
+				continue;
+			}
+			if (key == null || Cards.compareSingle(c, key) > 0) {
+				key = c;
+			}
+		}
+		return key;
 	}
 
 	private static Play play(PlayType type, List<Card> cards, Integer keyRank, Card keyCard, Integer keySuit) {

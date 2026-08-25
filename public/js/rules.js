@@ -20,20 +20,47 @@
     return m;
   }
 
-  /** 五张点数相邻（按本游戏点数顺序，不绕圈） */
-  function isStraightRanks(cards) {
+  /**
+   * 五张是否在点数环上连续：4→5→…→K→A→2→3→4。
+   * 返回顺子起点 rank（环上第一张），非法则 null。
+   */
+  function straightStartRank(cards) {
     const set = {};
     for (let i = 0; i < cards.length; i++) set[cards[i].rank] = true;
-    const ranks = Object.keys(set)
-      .map(Number)
-      .sort(function (a, b) {
-        return a - b;
-      });
-    if (ranks.length !== 5) return false;
-    for (let i = 1; i < 5; i++) {
-      if (ranks[i] !== ranks[i - 1] + 1) return false;
+    const uniq = Object.keys(set);
+    if (uniq.length !== 5) return null;
+    for (let start = 0; start < 13; start++) {
+      let ok = true;
+      for (let i = 0; i < 5; i++) {
+        if (!set[(start + i) % 13]) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) return start;
     }
-    return true;
+    return null;
+  }
+
+  function isStraightRanks(cards) {
+    return straightStartRank(cards) != null;
+  }
+
+  /**
+   * 顺子/天子比大小键牌：沿环走满 5 张后的末张。
+   * 跨过 3→4（同时含 3 与 4）时不用 3，例如 A2345 看 5、KA234 看 4。
+   */
+  function straightKeyCard(cards) {
+    const start = straightStartRank(cards);
+    if (start == null) return null;
+    const endRank = (start + 4) % 13;
+    let key = null;
+    for (let i = 0; i < cards.length; i++) {
+      const c = cards[i];
+      if (c.rank !== endRank) continue;
+      if (!key || compareSingle(c, key) > 0) key = c;
+    }
+    return key;
   }
 
   function identifyPlay(raw) {
@@ -131,14 +158,15 @@
         return c.suit === cards[0].suit;
       });
 
-      // 顺子 / 天子（同花顺优先于普通同花）
+      // 顺子 / 天子（同花顺优先于普通同花；绕圈顺仍判天子而非同花）
       if (isStraightRanks(cards)) {
+        const keyCard = straightKeyCard(cards) || maxCard;
         if (sameSuit) {
           return {
             type: 'flushstraight',
             cards: cards,
-            keyRank: maxCard.rank,
-            keyCard: maxCard,
+            keyRank: keyCard.rank,
+            keyCard: keyCard,
             keySuit: cards[0].suit,
             label: '天子',
           };
@@ -146,8 +174,8 @@
         return {
           type: 'straight',
           cards: cards,
-          keyRank: maxCard.rank,
-          keyCard: maxCard,
+          keyRank: keyCard.rank,
+          keyCard: keyCard,
           label: '顺子',
         };
       }
@@ -291,14 +319,17 @@
   }
 
   /**
-   * 找一手最小的合法出牌（预选提示用）。
+   * 找一手合法出牌（预选提示用）。
    * opts.requireDiamond4：本局首出必须含方片4。
+   * opts.preferLargest：优先张数最多（自由出牌/三家都过后再出）。
+   * 默认优先张数最少。
    * 返回 { ids, play } 或 null。
    */
   function findSmallestLegalPlay(hand, lastPlay, opts) {
     opts = opts || {};
     if (!hand || !hand.length) return null;
     const requireD4 = !!opts.requireDiamond4;
+    const preferLargest = !!opts.preferLargest;
     const isDiamond4 = global.PokerCards && global.PokerCards.isDiamond4;
     const sizes = beatSizes(lastPlay);
     let best = null;
@@ -313,9 +344,12 @@
           cards.reduce(function (m, c) {
             return compareSingle(c, m) > 0 ? c : m;
           }, cards[0]);
+        // 必须先有 best，再比较张数，否则首个合法组合会读空报错
+        const betterSize =
+          !!best && (preferLargest ? size > best.size : size < best.size);
         if (
           !best ||
-          size < best.size ||
+          betterSize ||
           (size === best.size && compareSingle(key, best.key) < 0)
         ) {
           best = {

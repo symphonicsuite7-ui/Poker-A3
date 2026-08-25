@@ -109,8 +109,8 @@
 /* —— 顶栏 —— */
 .screen-game.theme-medieval .game-toolbar-bar {
   top: 12px;
-  left: 14px;
-  right: 252px;
+  left: 252px;
+  right: 14px;
 }
 
 .screen-game.theme-medieval .game-back {
@@ -508,11 +508,12 @@
   opacity: 0.9;
 }
 
-/* —— 右侧日志 —— */
+/* —— 左侧日志 —— */
 .screen-game.theme-medieval .log-panel {
   background: rgba(255, 255, 255, var(--mf-log-fill));
-  border-left: 2px solid rgba(47, 154, 122, 0.45);
-  box-shadow: -8px 0 28px rgba(0, 0, 0, 0.12);
+  border-left: none;
+  border-right: 2px solid rgba(47, 154, 122, 0.45);
+  box-shadow: 8px 0 28px rgba(0, 0, 0, 0.12);
   color: #2a6b6a;
   backdrop-filter: none;
   padding: 52px 12px 12px;
@@ -646,8 +647,19 @@
 }
 
 .screen-game.theme-medieval .seat-bottom .hand.horizontal {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding-top: 24px;
+}
+
+.screen-game.theme-medieval .seat-bottom .hand-scroll-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.screen-game.theme-medieval .seat-bottom .hand-scroll-btn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.32);
 }
 
 .screen-game.theme-medieval .seat-bottom .card.selected,
@@ -710,4 +722,14 @@
   color: #2f9a7a;
   border-radius: 4px;
   font-weight: 400;
+}
+
+.draw-overlay.theme-medieval .draw-scroll-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.draw-overlay.theme-medieval .draw-scroll-btn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.32);
 }

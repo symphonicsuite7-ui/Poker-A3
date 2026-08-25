@@ -34,8 +34,9 @@
     const host = ensureOverlay();
     const percent = total ? Math.round((done / total) * 100) : 100;
     host.querySelector('.asset-loading-progress span').style.width = percent + '%';
-    host.querySelector('.asset-loading-count').textContent =
-      total ? '正在加载资源 ' + done + ' / ' + total : '资源准备完成';
+    host.querySelector('.asset-loading-count').textContent = total
+      ? '正在加载资源 ' + done + ' / ' + total
+      : '资源准备完成';
   }
 
   function loadImage(url) {
@@ -60,7 +61,7 @@
         try {
           if (img.decode) await img.decode();
         } catch (e) {
-          // onload 已确认资源可用，部分旧浏览器不支持可靠的 decode。
+          // onload 已确认资源可用
         }
         finish(true);
       };
@@ -78,6 +79,9 @@
     return global.PokerCards.createDeck().map(global.PokerCards.cardImageUrl);
   }
 
+  /**
+   * 只等卡牌图。粒子特效不参与门禁（极轻，开局后再用即可）。
+   */
   async function prepare(extraUrls) {
     const urls = Array.from(new Set(cardUrls().concat(extraUrls || []).filter(Boolean)));
     const missing = urls.filter((url) => !loaded.has(url) && !failedUrls.has(url));
