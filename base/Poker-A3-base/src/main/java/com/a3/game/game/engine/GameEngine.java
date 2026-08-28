@@ -472,6 +472,11 @@ public class GameEngine {
 	}
 
 	private void beginPlayAfterDraw(GameState state) {
+		// 抽还后葵扇3/A 可能易主，按最终手牌重算队伍，避免结算分差影响下一局抽牌
+		TeamResolver.Teams teams = TeamResolver.resolve(state.getPlayers());
+		state.setSolo(teams.solo);
+		state.setTeamA(teams.teamA);
+		state.setTeamB(teams.teamB);
 		int starter = findDiamond4Seat(state.getPlayers());
 		state.setCurrentPlayer(starter);
 		state.setPhase(GamePhase.PLAYING);

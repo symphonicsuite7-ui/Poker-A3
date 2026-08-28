@@ -409,6 +409,11 @@ function applyOneDevourGive(state, seat, ids, targetSeat) {
 }
 
 function beginPlayAfterDraw(state) {
+  // 抽还后葵扇3/A 可能易主，必须按最终手牌重算队伍，否则本局结算分差错乱，影响下一局抽牌
+  const teams = resolveTeams(state.players);
+  state.teamA = teams.teamA;
+  state.teamB = teams.teamB;
+  state.solo = teams.solo;
   const starter = findDiamond4Seat(state.players);
   state.currentPlayer = starter;
   state.phase = 'playing';

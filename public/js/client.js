@@ -790,7 +790,16 @@
     if (isOpeningLead(game) && !selectedCards.some(PokerCards.isDiamond4)) {
       return '首出必须包含方片4';
     }
-    return '可出：' + play.label;
+    let skill = null;
+    if (window.PokerBattleSkills) {
+      const streak = PokerBattleSkills.previewStreakCount(
+        game.events || [],
+        play.type,
+        free ? null : game.lastPlay
+      );
+      skill = PokerBattleSkills.resolveSkill(play.type, streak);
+    }
+    return '可出：' + (skill ? skill.displayName : play.label);
   }
 
   /** 本局第一次出牌才必须带方片4；全过后再出不算初出。 */
@@ -801,6 +810,37 @@
       if (events[i].kind === 'play') return false;
     }
     return true;
+  }
+
+  let lastBattleSkillKey = '';
+
+  /** 桌子中间展示当前连续压制战技 */
+  function updateBattleSkillBanner() {
+    const root = $('battle-skill');
+    const nameEl = $('battle-skill-name');
+    const descEl = $('battle-skill-desc');
+    if (!root || !nameEl || !descEl || !window.PokerBattleSkills) return;
+
+    const skill = PokerBattleSkills.resolveFromEvents((game && game.events) || []);
+    if (!skill) {
+      root.hidden = true;
+      lastBattleSkillKey = '';
+      return;
+    }
+
+    const key = skill.type + ':' + skill.streak + ':' + skill.displayName;
+    nameEl.textContent = skill.displayName;
+    nameEl.setAttribute('data-tip', skill.description);
+    nameEl.setAttribute('title', skill.description);
+    descEl.textContent = skill.description;
+    root.hidden = false;
+
+    if (key !== lastBattleSkillKey) {
+      lastBattleSkillKey = key;
+      root.classList.remove('is-enter');
+      void root.offsetWidth;
+      root.classList.add('is-enter');
+    }
   }
 
   function cardHtml(card, extraClass) {
@@ -978,6 +1018,7 @@
       }
     });
     if (latestPlayKey && latestActionKind === 'play') lastAnimatedPlayKey = latestPlayKey;
+    updateBattleSkillBanner();
   }
 
   function renderLogItem(ev) {

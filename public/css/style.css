@@ -678,6 +678,7 @@ body {
 
 .center-info {
   grid-area: center;
+  position: relative;
   text-align: center;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -713,6 +714,120 @@ body {
 
 .center-core {
   display: none;
+}
+
+/* 出牌成功：中央战技名称（浮层，不改座位网格） */
+.battle-skill {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 6;
+  transform: translate(-50%, -50%);
+  width: min(280px, 56%);
+  padding: 10px 14px 12px;
+  pointer-events: none;
+  text-align: center;
+}
+
+.battle-skill[hidden] {
+  display: none !important;
+}
+
+.battle-skill-glow {
+  position: absolute;
+  inset: -18px -28px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(232, 184, 74, 0.34) 0%, transparent 55%),
+    radial-gradient(circle at 50% 58%, rgba(96, 165, 250, 0.22) 0%, transparent 62%);
+  filter: blur(2px);
+  animation: battle-skill-glow 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.battle-skill-name {
+  position: relative;
+  display: inline-block;
+  pointer-events: auto;
+  cursor: help;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #f7e7b0;
+  text-shadow:
+    0 0 10px rgba(232, 184, 74, 0.55),
+    0 0 22px rgba(96, 165, 250, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
+}
+
+.battle-skill-name::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%) translateY(4px);
+  min-width: 160px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(12, 18, 28, 0.94);
+  border: 1px solid rgba(232, 184, 74, 0.4);
+  color: #e8dfcf;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+  white-space: normal;
+  text-shadow: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  z-index: 8;
+}
+
+.battle-skill-name:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.battle-skill-desc {
+  position: relative;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(220, 232, 255, 0.88);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+}
+
+.battle-skill.is-enter {
+  animation: battle-skill-enter 0.55s ease-out both;
+}
+
+@keyframes battle-skill-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.92);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes battle-skill-glow {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
 }
 
 .center-play {

@@ -277,12 +277,18 @@ function startGame(userId) {
   if (room.status === 'playing') return { ok: false, error: '游戏已开始' };
 
   const names = room.players.map((p) => seatDisplayName(p));
+  const userIds = room.players.map((p) => p.userId);
   const prevScores =
     room.game && room.game.phase === 'settled'
-      ? room.game.players.map((p) => p.score)
+      ? room.players.map((p) => {
+          const prev = room.game.players.find((gp) => gp.userId === p.userId);
+          if (prev) return prev.score;
+          const bySeat = room.game.players[p.seat];
+          return bySeat ? bySeat.score : 0;
+        })
       : [0, 0, 0, 0];
 
-  room.game = Game.newGame(names, prevScores);
+  room.game = Game.newGame(names, prevScores, userIds);
   room.status = 'playing';
   return { ok: true, room };
 }
@@ -299,7 +305,8 @@ function nextRound(userId) {
   }
 
   const names = room.players.map((p) => seatDisplayName(p));
-  room.game = Game.nextRound(room.game, names);
+  const userIds = room.players.map((p) => p.userId);
+  room.game = Game.nextRound(room.game, names, userIds);
   room.status = 'playing';
   return { ok: true, room };
 }

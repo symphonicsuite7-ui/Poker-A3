@@ -31,8 +31,9 @@ function resolveTeams(players) {
 /**
  * @param {string[]} playerNames 四名玩家昵称
  * @param {number[]} [prevScores]
+ * @param {Array<string|number|null>} [userIds] 与座位对齐的用户 ID，用于跨局对齐分差
  */
-function newGame(playerNames, prevScores) {
+function newGame(playerNames, prevScores, userIds) {
   prevScores = prevScores || [0, 0, 0, 0];
   const names = playerNames || ['玩家1', '玩家2', '玩家3', '玩家4'];
   const deck = Cards.shuffle(Cards.createDeck());
@@ -40,6 +41,7 @@ function newGame(playerNames, prevScores) {
   const players = [0, 1, 2, 3].map((id) => ({
     id,
     name: names[id] || '玩家' + (id + 1),
+    userId: userIds && userIds[id] != null ? userIds[id] : null,
     hand: Cards.sortCards(deck.slice(id * 13, id * 13 + 13)),
     finishedRank: null,
     goodsMark: null,
@@ -131,6 +133,7 @@ function cloneState(state) {
     players: state.players.map((p) => ({
       id: p.id,
       name: p.name,
+      userId: p.userId != null ? p.userId : null,
       hand: p.hand.map((c) => ({ id: c.id, suit: c.suit, rank: c.rank })),
       finishedRank: p.finishedRank,
       goodsMark: p.goodsMark || null,
@@ -869,14 +872,42 @@ function passTurn(state, seatIndex) {
   return { ok: true, state: next };
 }
 
-function nextRound(state, playerNames) {
-  const scores = state.players.map((p) => p.score);
-  const deltas = (state.lastDeltas || [0, 0, 0, 0]).slice();
+function nextRound(state, playerNames, userIds) {
+  const prevDeltas = state.lastDeltas || [0, 0, 0, 0];
+  // 按 userId 对齐上一局分数/分差，避免结算后座位重排导致「抽到队友」错乱
+  const prevByUser = {};
+  for (let i = 0; i < state.players.length; i++) {
+    const p = state.players[i];
+    const key = p.userId != null ? String(p.userId) : 'seat:' + i;
+    prevByUser[key] = {
+      score: p.score,
+      delta: prevDeltas[i] || 0,
+    };
+  }
+
   const names = playerNames || state.players.map((p) => p.name);
-  const g = newGame(names, scores);
+  const ids =
+    userIds ||
+    state.players.map((p, i) => (p.userId != null ? p.userId : null));
+
+  const scores = [0, 1, 2, 3].map((i) => {
+    const uid = ids[i];
+    const key = uid != null ? String(uid) : 'seat:' + i;
+    if (prevByUser[key]) return prevByUser[key].score;
+    return state.players[i] ? state.players[i].score : 0;
+  });
+  const deltas = [0, 1, 2, 3].map((i) => {
+    const uid = ids[i];
+    const key = uid != null ? String(uid) : 'seat:' + i;
+    if (prevByUser[key]) return prevByUser[key].delta;
+    return prevDeltas[i] || 0;
+  });
+
+  const g = newGame(names, scores, ids);
   g.round = (state.round || 1) + 1;
   const startedDraw = attachDraw(g, deltas);
   if (startedDraw) {
+    // 抽牌阶段暂不沿用发牌瞬间队伍；开打前 beginPlayAfterDraw 会按最终 3/A 重算
     g.events = [
       {
         kind: 'system',
